@@ -135,7 +135,7 @@ public final class EsriHdrTest extends GDALTestCase {
                         + (oldEnvelope.getSpan(1) / cropFactor) },
                 new double[] { oldEnvelope.getUpperCorner().getOrdinate(0),
                         oldEnvelope.getUpperCorner().getOrdinate(1) });
-        cropEnvelope.setCoordinateReferenceSystem(reader.getCrs());
+        cropEnvelope.setCoordinateReferenceSystem(reader.getCoordinateReferenceSystem());
 
         final ParameterValue gg = (ParameterValue) ((AbstractGridFormat) reader
                 .getFormat()).READ_GRIDGEOMETRY2D.createValue();

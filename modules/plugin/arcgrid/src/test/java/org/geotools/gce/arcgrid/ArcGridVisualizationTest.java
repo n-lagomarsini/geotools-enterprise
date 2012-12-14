@@ -29,6 +29,7 @@ import javax.media.jai.PlanarImage;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
+import org.geotools.coverage.grid.io.GridCoverage2DReader;
 import org.geotools.coverage.grid.io.GridFormatFinder;
 import org.geotools.factory.Hints;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
@@ -82,7 +83,7 @@ public final class ArcGridVisualizationTest extends ArcGridTestCaseAdapter {
         final File f = TestData.file(this, "arcgrid/arcGrid.asc");
         // Reading the coverage through a file
         AbstractGridFormat format = GridFormatFinder.findFormat(f);
-        AbstractGridCoverage2DReader reader = format.getReader(f);
+        GridCoverage2DReader reader = format.getReader(f);
 
         GridCoverage2D gc = reader.read(null);
 

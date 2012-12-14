@@ -19,6 +19,7 @@ package org.geotools.map;
 import java.util.logging.Level;
 
 import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
+import org.geotools.coverage.grid.io.GridCoverage2DReader;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.factory.FactoryRegistryException;
 import org.geotools.feature.SchemaException;
@@ -46,7 +47,7 @@ public class GridReaderLayer extends RasterLayer {
     /**
      * Grid coverage reader allowing direct access to raster content.
      */
-    protected AbstractGridCoverage2DReader reader;
+    protected GridCoverage2DReader reader;
     
     /**
      * Optional parameters to control the rendering process.
@@ -64,7 +65,7 @@ public class GridReaderLayer extends RasterLayer {
      * @throws FactoryRegistryException
      * @throws TransformException
      */
-    public GridReaderLayer(AbstractGridCoverage2DReader reader, Style style) {
+    public GridReaderLayer(GridCoverage2DReader reader, Style style) {
         this( reader, style, null, null );
     }
 
@@ -82,7 +83,7 @@ public class GridReaderLayer extends RasterLayer {
      * @throws FactoryRegistryException
      * @throws TransformException
      */
-    public GridReaderLayer(AbstractGridCoverage2DReader reader, Style style, String title) {
+    public GridReaderLayer(GridCoverage2DReader reader, Style style, String title) {
         this( reader, style, title, null );
     }
 
@@ -98,7 +99,7 @@ public class GridReaderLayer extends RasterLayer {
      * @throws FactoryRegistryException
      * @throws TransformException
      */
-    public GridReaderLayer(AbstractGridCoverage2DReader reader, Style style, GeneralParameterValue[] params) {
+    public GridReaderLayer(GridCoverage2DReader reader, Style style, GeneralParameterValue[] params) {
         this(reader, style, null, params );
     }
 
@@ -117,7 +118,7 @@ public class GridReaderLayer extends RasterLayer {
      * @throws FactoryRegistryException
      * @throws TransformException
      */
-    public GridReaderLayer(AbstractGridCoverage2DReader reader, Style style, String title,
+    public GridReaderLayer(GridCoverage2DReader reader, Style style, String title,
             GeneralParameterValue[] params) {
         super(style,title);
         this.reader = reader;
@@ -148,7 +149,7 @@ public class GridReaderLayer extends RasterLayer {
     @Override
     public ReferencedEnvelope getBounds() {
         if (reader != null) {
-            CoordinateReferenceSystem crs = reader.getCrs();
+            CoordinateReferenceSystem crs = reader.getCoordinateReferenceSystem();
             GeneralEnvelope envelope = reader.getOriginalEnvelope();
             if (envelope != null) {
                 return new ReferencedEnvelope(envelope);
@@ -164,7 +165,7 @@ public class GridReaderLayer extends RasterLayer {
      * 
      * @return
      */
-    public AbstractGridCoverage2DReader getReader() {
+    public GridCoverage2DReader getReader() {
         return reader;
     }
 

@@ -560,7 +560,7 @@ public abstract class BaseGridCoverage2DReader extends AbstractGridCoverage2DRea
 	resourceInfo=localInfo;    	
 	localInfo.setName(subname);
         localInfo.setBounds(new ReferencedEnvelope(this.getOriginalEnvelope()));
-        localInfo.setCRS(this.getCrs());
+        localInfo.setCRS(this.getCoordinateReferenceSystem());
         localInfo.setTitle(subname);
 
         return new DefaultResourceInfo(this.resourceInfo);

@@ -131,7 +131,7 @@ public final class ECWTest extends GDALTestCase {
 						+ (oldEnvelope.getSpan(1) / cropFactor) },
 				new double[] { oldEnvelope.getUpperCorner().getOrdinate(0),
 						oldEnvelope.getUpperCorner().getOrdinate(1) });
-		cropEnvelope.setCoordinateReferenceSystem(reader.getCrs());
+		cropEnvelope.setCoordinateReferenceSystem(reader.getCoordinateReferenceSystem());
 
 		final ParameterValue<GridGeometry2D> gg = ((AbstractGridFormat) reader.getFormat()).READ_GRIDGEOMETRY2D.createValue();
 		gg.setValue(new GridGeometry2D(new GridEnvelope2D(new Rectangle(0, 0,

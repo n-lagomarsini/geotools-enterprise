@@ -296,6 +296,11 @@ public final class WorldImageReader extends AbstractGridCoverage2DReader
 		readerSPI = reader.getOriginatingProvider();
 		reader.setInput(inStream);
 
+		//
+                // parse and set layout
+                //
+                setLayout(reader);
+		
 		// //
 		//
 		// get the dimension of the hr image and build the model as well as

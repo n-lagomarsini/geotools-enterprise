@@ -22,6 +22,7 @@ import java.util.List;
 
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
+import org.geotools.coverage.grid.io.GridCoverage2DReader;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.factory.FactoryRegistryException;
@@ -184,7 +185,7 @@ public final class FeatureUtilities {
      * @return a feature with the grid coverage envelope as the geometry and the
      *         grid coverage itself in the "grid" attribute.
      */
-    public static SimpleFeatureCollection wrapGridCoverageReader(final AbstractGridCoverage2DReader gridCoverageReader,
+    public static SimpleFeatureCollection wrapGridCoverageReader(final GridCoverage2DReader gridCoverageReader,
 			GeneralParameterValue[] params) throws TransformException,
 			FactoryRegistryException, SchemaException {
 
@@ -194,11 +195,11 @@ public final class FeatureUtilities {
 		final Rectangle2D rect = gridCoverageReader.getOriginalEnvelope()
 				.toRectangle2D();
 		final CoordinateReferenceSystem sourceCrs = CRS
-			.getHorizontalCRS(gridCoverageReader.getCrs());
+			.getHorizontalCRS(gridCoverageReader.getCoordinateReferenceSystem());
 		if(sourceCrs==null)
 			throw new UnsupportedOperationException(
 					Errors.format(
-		                    ErrorKeys.CANT_SEPARATE_CRS_$1,gridCoverageReader.getCrs()));
+		                    ErrorKeys.CANT_SEPARATE_CRS_$1,gridCoverageReader.getCoordinateReferenceSystem()));
 
 
 		final Coordinate[] coord = new Coordinate[5];

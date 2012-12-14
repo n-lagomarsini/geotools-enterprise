@@ -314,9 +314,9 @@ public class ShapefileDataStore extends AbstractFileDataStore {
      * Returns the {@link TimeZone} used to parse dates in the DBF file
      * @return
      */
-    public TimeZone getDbftimeZone() {
-		return dbfTimeZone;
-	}
+//    public TimeZone getDbftimeZone() {
+//		return dbfTimeZone;
+//	}
 
     /**
      * Sets the {@link TimeZone} used to parse dates in the DBF file

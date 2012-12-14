@@ -90,6 +90,7 @@ import org.geotools.image.io.ImageIOExt;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.operation.matrix.XAffineTransform;
 import org.geotools.referencing.operation.transform.ProjectiveTransform;
+import org.geotools.resources.coverage.CoverageUtilities;
 import org.geotools.resources.i18n.Vocabulary;
 import org.geotools.resources.i18n.VocabularyKeys;
 import org.geotools.util.NumberRange;
@@ -318,13 +319,20 @@ public class GeoTiffReader extends AbstractGridCoverage2DReader implements GridC
             }
 
             if (crs == null){
-            if(LOGGER.isLoggable(Level.WARNING))
-                LOGGER.warning("Coordinate Reference System is not available");
+                if(LOGGER.isLoggable(Level.WARNING)){
+                    LOGGER.warning("Coordinate Reference System is not available");
+                }
                 crs = AbstractGridFormat.getDefaultCRS();
             }
 
             if (metadata.hasNoData())
                 noData = metadata.getNoData();
+            
+            // 
+            // parse and set layout
+            // 
+            setLayout(reader);
+            
             // //
             //
             // get the dimension of the hr image and build the model as well as
@@ -348,7 +356,7 @@ public class GeoTiffReader extends AbstractGridCoverage2DReader implements GridC
 
             final AffineTransform tempTransform = new AffineTransform(
                     (AffineTransform) raster2Model);
-            tempTransform.translate(-0.5, -0.5);
+            tempTransform.concatenate(CoverageUtilities.CENTER_TO_CORNER);
             originalEnvelope = CRS.transform(ProjectiveTransform.create(tempTransform),
                     new GeneralEnvelope(actualDim));
             originalEnvelope.setCoordinateReferenceSystem(crs);

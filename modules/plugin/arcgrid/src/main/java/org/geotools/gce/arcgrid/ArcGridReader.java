@@ -655,8 +655,7 @@ public final class ArcGridReader extends AbstractGridCoverage2DReader implements
 	 * @throws IOException
 	 * @throws FileNotFoundException
 	 */
-	private void getCoordinateReferenceSystem() throws FileNotFoundException,
-			IOException {
+	public CoordinateReferenceSystem getCoordinateReferenceSystem() {
 
 		// check to see if there is a projection file
 		if (source instanceof File
@@ -718,6 +717,8 @@ public final class ArcGridReader extends AbstractGridCoverage2DReader implements
 			crs = AbstractGridFormat.getDefaultCRS();
 			LOGGER.info( "Unable to find crs, continuing with default CRS" );
 		}
+		
+		return crs;
 	}
 
 	/**

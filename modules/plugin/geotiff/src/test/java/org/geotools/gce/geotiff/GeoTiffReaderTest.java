@@ -82,7 +82,7 @@ public class GeoTiffReaderTest extends Assert {
 	        final AbstractGridFormat format = new GeoTiffFormat();
 	        assertTrue(format.accepts(noCrs));
 	        GeoTiffReader reader = (GeoTiffReader) format.getReader(noCrs);
-	        CoordinateReferenceSystem crs=reader.getCrs();
+	        CoordinateReferenceSystem crs=reader.getCoordinateReferenceSystem();
 	        
 	        final File prj= TestData.file(GeoTiffReaderTest.class, "sample.prj");
 	        final CoordinateReferenceSystem crs_=new PrjFileReader(new FileInputStream(prj).getChannel()).getCoordinateReferenceSystem();
@@ -148,7 +148,7 @@ public class GeoTiffReaderTest extends Assert {
         final AbstractGridFormat format = new GeoTiffFormat();
         assertTrue(format.accepts(noCrs));
         GeoTiffReader reader = (GeoTiffReader) format.getReader(noCrs);
-        CoordinateReferenceSystem crs=reader.getCrs();
+        CoordinateReferenceSystem crs=reader.getCoordinateReferenceSystem();
         assertTrue(CRS.equalsIgnoreMetadata(crs, DefaultEngineeringCRS.GENERIC_2D));
         GridCoverage2D coverage=reader.read(null);
         assertTrue(CRS.equalsIgnoreMetadata(coverage.getCoordinateReferenceSystem(), DefaultEngineeringCRS.GENERIC_2D));
@@ -437,7 +437,7 @@ public class GeoTiffReaderTest extends Assert {
             super(input);
         }
 
-        int getNumOverviews() {
+        public int getNumOverviews() {
             return numOverviews;
         }
 

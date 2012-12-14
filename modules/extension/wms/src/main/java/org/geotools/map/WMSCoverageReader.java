@@ -339,7 +339,7 @@ class WMSCoverageReader extends AbstractGridCoverage2DReader {
                 requestSrs = code;
             } else {
                 // first reproject to the map CRS
-                gridEnvelope = bbox.transform(getCrs(), true);
+                gridEnvelope = bbox.transform(getCoordinateReferenceSystem(), true);
 
                 // then adjust the form factor
                 if (gridEnvelope.getWidth() < gridEnvelope.getHeight()) {

@@ -55,8 +55,8 @@ import javax.media.jai.PlanarImage;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.coverage.grid.GridGeometry2D;
-import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
+import org.geotools.coverage.grid.io.GridCoverage2DReader;
 import org.geotools.coverage.processing.CoverageProcessor;
 import org.geotools.data.DataUtilities;
 import org.geotools.data.FeatureSource;
@@ -64,7 +64,6 @@ import org.geotools.data.Query;
 import org.geotools.data.crs.ForceCoordinateSystemFeatureResults;
 import org.geotools.data.memory.CollectionSource;
 import org.geotools.data.simple.SimpleFeatureCollection;
-import org.geotools.data.simple.SimpleFeatureSource;
 import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.factory.Hints;
 import org.geotools.feature.FeatureCollection;
@@ -2120,9 +2119,9 @@ public class StreamingRenderer implements GTRenderer {
                 Feature gridWrapper = featureSource.getFeatures().features().next();
                 if(FeatureUtilities.isWrappedCoverageReader(simpleSchema)) {
                     final Object params = paramsPropertyName.evaluate(gridWrapper);
-                    final AbstractGridCoverage2DReader reader = (AbstractGridCoverage2DReader) gridPropertyName.evaluate(gridWrapper);
+                    final GridCoverage2DReader reader = (GridCoverage2DReader) gridPropertyName.evaluate(gridWrapper);
                     // don't read more than the native resolution (in case we are oversampling)
-                    if(CRS.equalsIgnoreMetadata(reader.getCrs(), gridGeometry.getCoordinateReferenceSystem())) {
+                    if(CRS.equalsIgnoreMetadata(reader.getCoordinateReferenceSystem(), gridGeometry.getCoordinateReferenceSystem())) {
                          MathTransform g2w = reader.getOriginalGridToWorld(PixelInCell.CELL_CENTER);
                          if(g2w instanceof AffineTransform2D && readGG.getGridToCRS2D() instanceof AffineTransform2D) {
                              AffineTransform2D atOriginal = (AffineTransform2D) g2w;
@@ -2239,8 +2238,8 @@ public class StreamingRenderer implements GTRenderer {
             return (FeatureCollection) result;
         } else if(result instanceof GridCoverage2D) {
             return FeatureUtilities.wrapGridCoverage((GridCoverage2D) result);
-        } else if(result instanceof AbstractGridCoverage2DReader) {
-            return FeatureUtilities.wrapGridCoverageReader((AbstractGridCoverage2DReader) result, null);
+        } else if(result instanceof GridCoverage2DReader) {
+            return FeatureUtilities.wrapGridCoverageReader((GridCoverage2DReader) result, null);
         } else {
             throw new IllegalArgumentException("Don't know how to handle the results of the transformation, " +
                     "the supported result types are FeatureCollection, GridCoverage2D " +
@@ -2657,10 +2656,10 @@ public class StreamingRenderer implements GTRenderer {
                     final Object grid = gridPropertyName.evaluate(drawMe.content);
                     if (grid instanceof GridCoverage2D) {
                         coverage = (GridCoverage2D) grid;
-                    } else if (grid instanceof AbstractGridCoverage2DReader) {
+                    } else if (grid instanceof GridCoverage2DReader) {
                         final Object params = paramsPropertyName.evaluate(drawMe.content);
                         GridGeometry2D readGG = new GridGeometry2D(new GridEnvelope2D(screenSize), mapExtent);
-                        AbstractGridCoverage2DReader reader = (AbstractGridCoverage2DReader) grid;
+                        GridCoverage2DReader reader = (GridCoverage2DReader) grid;
                         coverage = readCoverage(reader, params, readGG);
                         disposeCoverage = true;
                     }
@@ -3007,7 +3006,7 @@ public class StreamingRenderer implements GTRenderer {
         return null;
     }
     
-    GridCoverage2D readCoverage(final AbstractGridCoverage2DReader reader, final Object params, GridGeometry2D readGG) throws IOException {
+    GridCoverage2D readCoverage(final GridCoverage2DReader reader, final Object params, GridGeometry2D readGG) throws IOException {
         GridCoverage2D coverage;
         // read the coverage with the proper target geometry (will trigger cropping and resolution reduction)
         final Parameter<GridGeometry2D> readGGParam = new Parameter<GridGeometry2D>(

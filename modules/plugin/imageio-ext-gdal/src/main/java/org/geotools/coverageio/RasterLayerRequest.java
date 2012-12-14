@@ -862,7 +862,7 @@ class RasterLayerRequest {
         input = reader.getInputFile();
         this.coverageEnvelope = reader.getOriginalEnvelope().clone();
         this.coverageRasterArea = ((GridEnvelope2D)reader.getOriginalGridRange());
-        this.coverageCRS = reader.getCrs();
+        this.coverageCRS = reader.getCoordinateReferenceSystem();
         this.coverageName = reader.getCoverageName();
         this.coverageGridToWorld2D = (MathTransform2D) reader.getRaster2Model();
         this.coverageFullResolution = reader.getHighestRes();

@@ -16,15 +16,15 @@
  */
 package org.geotools.gce.imagemosaic;
 
+import it.geosolutions.imageio.utilities.ImageIOUtilities;
+
 import java.awt.Rectangle;
 import java.awt.image.RenderedImage;
 import java.io.IOException;
 import java.net.URL;
 
 import javax.media.jai.PlanarImage;
-import javax.media.jai.widget.ScrollingImagePanel;
 import javax.swing.JFrame;
-import javax.swing.SwingUtilities;
 
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridGeometry2D;
@@ -57,9 +57,9 @@ final class TestUtils extends Assert {
 			GeneralParameterValue[] values, String title,
 			final GridCoverage2D coverage, final Rectangle rect) {
 	    final RenderedImage image = coverage.getRenderedImage(); 
-//		if (ImageMosaicReaderTest.INTERACTIVE)
-//			show(image, title);
-//		else
+		if (ImageMosaicReaderTest.INTERACTIVE)
+			show(image, title);
+		else
 			PlanarImage.wrapRenderedImage(image).getTiles();
 		
 		if(values!=null)	
@@ -79,11 +79,11 @@ final class TestUtils extends Assert {
 		    assertEquals(image.getHeight(), rect.height);
 		}
 		
-//		if (!ImageMosaicReaderTest.INTERACTIVE){
-//			// dispose stuff
-//			coverage.dispose(true);
-//			reader.dispose();
-//		}
+		if (!ImageMosaicReaderTest.INTERACTIVE){
+			// dispose stuff
+			coverage.dispose(true);
+			reader.dispose();
+		}
 	}
 
 	/**
@@ -108,14 +108,16 @@ final class TestUtils extends Assert {
 	static void checkCoverage(final ImageMosaicReader reader,
 			GeneralParameterValue[] values, String title, Rectangle rect) throws IOException {
 		// Test the coverage
-		final GridCoverage2D coverage = getCoverage(reader, values);
+		final GridCoverage2D coverage = getCoverage(reader, values, true);
 		testCoverage(reader, values, title, coverage, rect);
 	}
 
 	static GridCoverage2D getCoverage(final ImageMosaicReader reader,
-			GeneralParameterValue[] values) throws IOException {
+			GeneralParameterValue[] values, final boolean checkForNull) throws IOException {
 		final GridCoverage2D coverage = (GridCoverage2D) reader.read(values);
-		Assert.assertNotNull(coverage);
+		if (checkForNull) {
+		    Assert.assertNotNull(coverage);
+		}
 		return coverage;
 	}
 
@@ -177,17 +179,7 @@ final class TestUtils extends Assert {
 	 *            to use.
 	 */
 	static void show(RenderedImage image, String title) {
-		final JFrame jf = new JFrame(title);
-		jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		jf.getContentPane().add(new ScrollingImagePanel(image, 800, 800));
-		SwingUtilities.invokeLater(new Runnable() {
-	
-			public void run() {
-				jf.pack();
-				jf.setVisible(true);
-	
-			}
-		});
+		ImageIOUtilities.visualize(image,title);
 	
 	}
 

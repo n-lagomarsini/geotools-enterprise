@@ -140,7 +140,7 @@ public final class MrSIDTest extends GDALTestCase {
                 originalEnvelope.getLowerCorner().getOrdinate(1)},
                 new double[] { originalEnvelope.getMedian().getOrdinate(0),
                         originalEnvelope.getMedian().getOrdinate(1)});
-        reducedEnvelope.setCoordinateReferenceSystem(reader.getCrs());
+        reducedEnvelope.setCoordinateReferenceSystem(reader.getCoordinateReferenceSystem());
 
         final ParameterValue gg = (ParameterValue) ((AbstractGridFormat) reader
                 .getFormat()).READ_GRIDGEOMETRY2D.createValue();
