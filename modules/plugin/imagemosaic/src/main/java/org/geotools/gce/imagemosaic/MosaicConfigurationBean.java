@@ -85,8 +85,23 @@ public class MosaicConfigurationBean {
 	
 	/** elevation attribute name. <code>null</code> if absent.*/
 	private String elevationAttribute;
+
+        /** additional domain attributes names. <code>null</code> if absent.*/
+        private String additionalDomainAttributes;
+
+        /** The typename to use for the mosaic index*/
+
+	private String typeName;
 	
-        /** 
+    public String getTypeName() {
+    	return typeName;
+	}
+
+	public void setTypeName(String typeName) {
+		this.typeName = typeName;
+	}
+
+		/** 
          * mosaic's dummy sample model useful to store dataType and number of bands. All the other fields
          * shouldn't be queried since they are meaningless for the whole mosaic (width, height, ...)
          */
@@ -132,6 +147,14 @@ public class MosaicConfigurationBean {
 	public void setTimeAttribute(final String timeAttribute) {
 		this.timeAttribute = timeAttribute;
 	}
+	
+    public String getAdditionalDomainAttributes() {
+        return additionalDomainAttributes;
+    }
+
+    public void setAdditionalDomainAttributes(String additionalDomainAttributes) {
+        this.additionalDomainAttributes = additionalDomainAttributes;
+    }
 	/**
 	 * @return the suggestedSPI
 	 */
