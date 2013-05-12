@@ -107,16 +107,6 @@ public class ImageMosaicReaderTest extends Assert{
 	private URL rgbAURL;
 
 	private URL overviewURL;
-
-	private URL rgbJarURL;
-	
-	private URL indexJarURL;
-	
-	private URL indexAlphaJarURL;
-	
-	private URL grayJarURL;
-	
-	private URL index_unique_paletteAlphaJarURL;
 	
 	private boolean interactive;
 
@@ -954,22 +944,17 @@ public class ImageMosaicReaderTest extends Assert{
 		rgbURL = TestData.url(this, "rgb");
 		heterogeneousGranulesURL = TestData.url(this, "heterogeneous");
 		timeURL = TestData.url(this, "time_geotiff");
-		rgbJarURL = new URL("jar:"+TestData.url(this, "rgb.jar").toExternalForm()+"!/rgb/mosaic.shp");
 		
 		overviewURL = TestData.url(this, "overview/");
 		rgbAURL = TestData.url(this, "rgba/");
 		
 		indexURL = TestData.url(this, "index/");
-		indexJarURL = new URL("jar:"+TestData.url(this, "index.jar").toExternalForm()+"!/index/modis.shp");
 		
 		indexAlphaURL = TestData.url(this, "index_alpha/");
-		indexAlphaJarURL = new URL("jar:"+TestData.url(this, "index_alpha.jar").toExternalForm()+"!/index_alpha/modis.shp");
 		
 		grayURL = TestData.url(this, "gray/");
-		grayJarURL = new URL("jar:"+TestData.url(this, "gray.jar").toExternalForm()+"!/gray/dof.shp");
 		
 		index_unique_paletteAlphaURL = TestData.url(this,"index_alpha_unique_palette/");
-		index_unique_paletteAlphaJarURL = new URL("jar:"+TestData.url(this, "index_alpha_unique_palette.jar").toExternalForm()+"!/index_alpha_unique_palette/dof.shp");
 		
 		imposedEnvelopeURL=TestData.url(this,"env");
 		
