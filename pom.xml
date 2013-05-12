@@ -1407,11 +1407,14 @@
     </repository>
     
 
-    <repository>
-      <id>geosolutions</id>
-      <name>geosolutions repository</name>
-      <url>http://maven.geo-solutions.it/</url>
-    </repository>
+  <repository>
+   <id>geosolutions</id>
+   <name>GeoSolutions Maven Repository</name>
+   <url>http://maven.geo-solutions.it/</url>
+   <snapshots>
+     <enabled>true</enabled>
+   </snapshots>
+  </repository>  
 
     <repository>
       <id>osgeo</id>
