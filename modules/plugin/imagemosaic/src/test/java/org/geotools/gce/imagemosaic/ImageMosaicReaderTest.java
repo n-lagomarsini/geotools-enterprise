@@ -907,16 +907,16 @@ public class ImageMosaicReaderTest extends Assert{
         // read and check we actually got a coverage in the requested area
         GridCoverage2D coverage = reader.read(new GeneralParameterValue[] {ggp, bgp});
         assertNotNull(coverage);
-        System.out.println(coverage.getEnvelope2D());
-        System.out.println(env);
+//        System.out.println(coverage.getEnvelope2D());
+//        System.out.println(env);
         assertTrue(coverage.getEnvelope2D().contains((Rectangle2D) env));
         assertTrue(coverage.getEnvelope2D().contains(env.getBounds2D()));
         
         // and that the color is the expected one given the background values provided
         RenderedImage ri = coverage.getRenderedImage();
         // ImageIO.write(ri, "PNG", new File("/tmp/mix.png"));
-        System.out.println(ri.getNumXTiles());
-        System.out.println(ri.getNumYTiles());
+//        System.out.println(ri.getNumXTiles());
+//        System.out.println(ri.getNumYTiles());
         int[] pixel = new int[4];
         Raster tile = ri.getTile(ri.getMinTileX() + ri.getNumXTiles()  - 1, 
                 ri.getMinTileY() + ri.getNumYTiles() - 1);
