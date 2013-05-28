@@ -826,7 +826,7 @@ class RasterLayerResponse{
 			//compute final world to grid
 			// base grid to world for the center of pixels
 			final AffineTransform g2w;
-			if(request.isHeterogeneousGranules()){
+			if(!request.isHeterogeneousGranules()){
         			final OverviewLevel baseLevel = rasterManager.overviewsController.resolutionsLevels.get(0);
         			final OverviewLevel selectedLevel = rasterManager.overviewsController.resolutionsLevels.get(imageChoice);
         			final double resX = baseLevel.resolutionX;

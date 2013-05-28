@@ -878,7 +878,7 @@ public class ImageMosaicReaderTest extends Assert{
         // and that the color is the expected one given the background values provided
         RenderedImage ri = coverage.getRenderedImage();
         int[] pixel = new int[4];
-        Raster tile = ri.getTile(ri.getMinTileX(), ri.getMinTileY());
+        Raster tile = ri.getTile(ri.getMinTileX() + 1, ri.getMinTileY() + 1);
         tile.getPixel(tile.getMinX(), tile.getMinY(), pixel);
         assertEquals(255, pixel[0]);
         assertEquals(0, pixel[1]);
@@ -914,14 +914,13 @@ public class ImageMosaicReaderTest extends Assert{
         
         // and that the color is the expected one given the background values provided
         RenderedImage ri = coverage.getRenderedImage();
-//        RenderedImageBrowser.showChain(ri,true,true);
-        
+        // ImageIO.write(ri, "PNG", new File("/tmp/mix.png"));
 //        System.out.println(ri.getNumXTiles());
 //        System.out.println(ri.getNumYTiles());
-        
         int[] pixel = new int[4];
-        Raster tile = ri.getTile(ri.getMinTileX()+1, ri.getMinTileY());
-        tile.getPixel(99, 0, pixel);
+        Raster tile = ri.getTile(ri.getMinTileX() + ri.getNumXTiles()  - 1, 
+                ri.getMinTileY() + ri.getNumYTiles() - 1);
+        tile.getPixel(tile.getWidth() / 2, tile.getHeight() / 2, pixel);
         assertEquals(255, pixel[0]);
         assertEquals(0, pixel[1]);
         assertEquals(0, pixel[2]);
