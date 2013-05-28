@@ -878,7 +878,7 @@ public class ImageMosaicReaderTest extends Assert{
         // and that the color is the expected one given the background values provided
         RenderedImage ri = coverage.getRenderedImage();
         int[] pixel = new int[4];
-        Raster tile = ri.getTile(ri.getMinTileX() + 1, ri.getMinTileY() + 1);
+        Raster tile = ri.getTile(ri.getMinTileX(), ri.getMinTileY());
         tile.getPixel(tile.getMinX(), tile.getMinY(), pixel);
         assertEquals(255, pixel[0]);
         assertEquals(0, pixel[1]);
@@ -907,20 +907,21 @@ public class ImageMosaicReaderTest extends Assert{
         // read and check we actually got a coverage in the requested area
         GridCoverage2D coverage = reader.read(new GeneralParameterValue[] {ggp, bgp});
         assertNotNull(coverage);
-        System.out.println(coverage.getEnvelope2D());
-        System.out.println(env);
+//        System.out.println(coverage.getEnvelope2D());
+//        System.out.println(env);
         assertTrue(coverage.getEnvelope2D().contains((Rectangle2D) env));
         assertTrue(coverage.getEnvelope2D().contains(env.getBounds2D()));
         
         // and that the color is the expected one given the background values provided
         RenderedImage ri = coverage.getRenderedImage();
-        // ImageIO.write(ri, "PNG", new File("/tmp/mix.png"));
-        System.out.println(ri.getNumXTiles());
-        System.out.println(ri.getNumYTiles());
+//        RenderedImageBrowser.showChain(ri,true,true);
+        
+//        System.out.println(ri.getNumXTiles());
+//        System.out.println(ri.getNumYTiles());
+        
         int[] pixel = new int[4];
-        Raster tile = ri.getTile(ri.getMinTileX() + ri.getNumXTiles()  - 1, 
-                ri.getMinTileY() + ri.getNumYTiles() - 1);
-        tile.getPixel(tile.getWidth() / 2, tile.getHeight() / 2, pixel);
+        Raster tile = ri.getTile(ri.getMinTileX()+1, ri.getMinTileY());
+        tile.getPixel(99, 0, pixel);
         assertEquals(255, pixel[0]);
         assertEquals(0, pixel[1]);
         assertEquals(0, pixel[2]);
