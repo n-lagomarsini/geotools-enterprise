@@ -82,7 +82,6 @@ import org.geotools.geometry.Envelope2D;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.geometry.jts.JTS;
 import org.geotools.geometry.jts.ReferencedEnvelope;
-import org.geotools.image.ImageLayout2;
 import org.geotools.image.ImageWorker;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.operation.matrix.XAffineTransform;
@@ -96,6 +95,7 @@ import org.geotools.resources.image.ImageUtilities;
 import org.geotools.util.DateRange;
 import org.geotools.util.NumberRange;
 import org.geotools.util.SimpleInternationalString;
+import org.jaitools.imageutils.ImageLayout2;
 import org.jaitools.imageutils.ROIGeometry;
 import org.opengis.coverage.ColorInterpretation;
 import org.opengis.coverage.SampleDimension;
@@ -796,7 +796,7 @@ class RasterLayerResponse{
 			// level dimension and envelope. The grid to world transforms for
 			// the other levels can be computed accordingly knowing the scale
 			// factors.
-			if (request.getRequestedBBox() != null && request.getRequestedRasterArea() != null && !request.isHeterogeneousGranules())
+			if (request.getRequestedBBox() != null && request.getRequestedRasterArea() != null && !request.isHeterogeneousGranules()){
 				imageChoice = ReadParamsController.setReadParams(
 				        request.getRequestedResolution(),
 				        request.getOverviewPolicy(),
@@ -804,11 +804,12 @@ class RasterLayerResponse{
 				        baseReadParameters,
 				        request.rasterManager,
 				        request.rasterManager.overviewsController); // use general overviews controller
-			else
-				imageChoice = 0;
+			} else {
+			    imageChoice = 0;
+			}
 			assert imageChoice>=0;
 			if (LOGGER.isLoggable(Level.FINE))
-				LOGGER.fine(new StringBuffer("Loading level ").append(
+				LOGGER.fine(new StringBuilder("Loading level ").append(
 						imageChoice).append(" with subsampling factors ")
 						.append(baseReadParameters.getSourceXSubsampling()).append(" ")
 						.append(baseReadParameters.getSourceYSubsampling()).toString());			
@@ -816,32 +817,40 @@ class RasterLayerResponse{
 			
 			// ok we got something to return, let's load records from the index
 			final BoundingBox cropBBOX = request.getCropBBox();
-			if (cropBBOX != null)
+			if (cropBBOX != null){
 			    mosaicBBox = ReferencedEnvelope.reference(cropBBOX);
-			else
-			    mosaicBBox = new ReferencedEnvelope(coverageEnvelope);
+			} else{
+                            mosaicBBox = new ReferencedEnvelope(coverageEnvelope);
+			}
 						
 			//compute final world to grid
 			// base grid to world for the center of pixels
 			final AffineTransform g2w;
-			final OverviewLevel baseLevel = rasterManager.overviewsController.resolutionsLevels.get(0);
-			final OverviewLevel selectedLevel = rasterManager.overviewsController.resolutionsLevels.get(imageChoice);
-			final double resX = baseLevel.resolutionX;
-			final double resY = baseLevel.resolutionY;
-			final double[] requestRes = request.getRequestedResolution();
-
-                        g2w = new AffineTransform((AffineTransform) baseGridToWorld);
-                        g2w.concatenate(CoverageUtilities.CENTER_TO_CORNER);
-                        
-			if ((requestRes[0] < resX || requestRes[1] < resY) ) {
-			    // Using the best available resolution
-			    oversampledRequest = true;
+			if(!request.isHeterogeneousGranules()){
+        			final OverviewLevel baseLevel = rasterManager.overviewsController.resolutionsLevels.get(0);
+        			final OverviewLevel selectedLevel = rasterManager.overviewsController.resolutionsLevels.get(imageChoice);
+        			final double resX = baseLevel.resolutionX;
+        			final double resY = baseLevel.resolutionY;
+        			final double[] requestRes = request.getRequestedResolution();
+        
+                                g2w = new AffineTransform((AffineTransform) baseGridToWorld);
+                                g2w.concatenate(CoverageUtilities.CENTER_TO_CORNER);
+                                
+        			if ((requestRes[0] < resX || requestRes[1] < resY) ) {
+        			    // Using the best available resolution
+        			    oversampledRequest = true;
+        			} else {
+        				
+        			    // SG going back to working on a per level basis to do the composition
+        			    // g2w = new AffineTransform(request.getRequestedGridToWorld());
+        			    g2w.concatenate(AffineTransform.getScaleInstance(selectedLevel.scaleFactor,selectedLevel.scaleFactor));
+        			    g2w.concatenate(AffineTransform.getScaleInstance(baseReadParameters.getSourceXSubsampling(), baseReadParameters.getSourceYSubsampling()));
+        			}
 			} else {
-				
-			    // SG going back to working on a per level basis to do the composition
-			    // g2w = new AffineTransform(request.getRequestedGridToWorld());
-			    g2w.concatenate(AffineTransform.getScaleInstance(selectedLevel.scaleFactor,selectedLevel.scaleFactor));
-			    g2w.concatenate(AffineTransform.getScaleInstance(baseReadParameters.getSourceXSubsampling(), baseReadParameters.getSourceYSubsampling()));
+
+                            // g2w = new AffineTransform(request.getRequestedGridToWorld());
+                            g2w = new AffineTransform(request.getRequestedGridToWorld());
+                            g2w.concatenate(CoverageUtilities.CENTER_TO_CORNER);			    
 			}
 
 			// move it to the corner
