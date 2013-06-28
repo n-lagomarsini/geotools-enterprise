@@ -43,6 +43,14 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem;
  *         /data/wfs/WFSDataStore.java $
  */
 public interface WFSDataStore extends DataStore {
+
+    /**
+     * Values for the AXIS_ORDER and AXIS_ORDER_FILTER connection parameters.
+     */
+    public static final String AXIS_ORDER_EAST_NORTH = "East / North";
+    public static final String AXIS_ORDER_NORTH_EAST = "North / East";
+    public static final String AXIS_ORDER_COMPLIANT = "Compliant";
+
     
     /**
      * Provides the vendor parameters to be used in a query
@@ -103,4 +111,10 @@ public interface WFSDataStore extends DataStore {
     public boolean isPreferPostOverGet();
     
     public void setNamespaceOverride(String namespaceOverride);
+    
+    
+	/**
+	 * @param useDefaultSRS
+	 */
+	public void setUseDefaultSRS(Boolean useDefaultSRS);
 }

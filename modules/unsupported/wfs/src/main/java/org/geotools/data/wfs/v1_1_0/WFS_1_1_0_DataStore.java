@@ -25,6 +25,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -46,6 +47,7 @@ import org.geotools.data.Query;
 import org.geotools.data.ReTypeFeatureReader;
 import org.geotools.data.SchemaNotFoundException;
 import org.geotools.data.Transaction;
+import org.geotools.data.crs.ForceCoordinateSystemFeatureReader;
 import org.geotools.data.crs.ReprojectFeatureReader;
 import org.geotools.data.simple.SimpleFeatureSource;
 import org.geotools.data.wfs.WFSDataStore;
@@ -78,6 +80,8 @@ import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.NoSuchAuthorityCodeException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.operation.TransformException;
+
+import com.vividsolutions.jts.geom.GeometryFactory;
 
 /**
  * A WFS 1.1 DataStore implementation.
@@ -117,6 +121,13 @@ public final class WFS_1_1_0_DataStore implements WFSDataStore {
     private boolean preferPostOverGet = false;
 
     private String namespaceOverride;
+    
+    private Boolean useDefaultSRS = false;
+    
+    private String axisOrderOutput = AXIS_ORDER_COMPLIANT;
+    private String axisOrderFilter = AXIS_ORDER_COMPLIANT;
+    
+    private String outputFormat = null;
 
     /**
      * The WFS capabilities document.
@@ -294,15 +305,70 @@ public final class WFS_1_1_0_DataStore implements WFSDataStore {
 
     private WFSResponse executeGetFeatures(final Query query, final Transaction transaction,
             final ResultType resultType) throws IOException {
-        // TODO: handle output format preferences
-        final String outputFormat = wfs.getDefaultOutputFormat(GET_FEATURE);
+        final String outputFormat = this.outputFormat == null ? wfs
+                .getDefaultOutputFormat(GET_FEATURE) : this.outputFormat;
 
         String srsName = adaptQueryForSupportedCrs(query);
+        
+        try {
+            invertAxisInFilterIfNeeded(query, CRS.decode(srsName));
+        } catch (NoSuchAuthorityCodeException e) {
+            LOGGER.log(Level.FINER, e.getMessage(), e);
+        } catch (FactoryException e) {
+            LOGGER.log(Level.FINER, e.getMessage(), e);
+        }
 
         GetFeature request = new GetFeatureQueryAdapter(query, outputFormat, srsName, resultType);
 
         final WFSResponse response = sendGetFeatures(request);
         return response;
+    }
+
+    public void setGetFeatureOutputFormat(String outputFormat) {
+        if (outputFormat != null && !outputFormat.equals("")) {
+            this.outputFormat = outputFormat;
+        }
+    }
+    /**
+     * Invert axis order in the given query filter, if needed.
+     * 
+     * @param query
+     */
+    private void invertAxisInFilterIfNeeded(Query query,
+            CoordinateReferenceSystem crs) {
+        boolean invertXY = invertAxisNeeded(axisOrderFilter, crs);
+        if (invertXY) {
+            Filter filter = query.getFilter();
+
+            FilterFactory2 ff = CommonFactoryFinder.getFilterFactory2(null);
+            InvertAxisFilterVisitor visitor = new InvertAxisFilterVisitor(ff,
+                    new GeometryFactory());
+            filter = (Filter) filter.accept(visitor, null);
+
+            query.setFilter(filter);
+        }
+    }
+
+    /**
+     * Checks if axis flipping is needed comparing axis order requested for the
+     * DataStore with query crs.
+     * 
+     * @param axisOrder
+     * @param coordinateSystem
+     * @return
+     */
+    public static boolean invertAxisNeeded(String axisOrder,
+            CoordinateReferenceSystem crs) {
+        boolean invertXY;
+
+        if (axisOrder.equals(WFSDataStore.AXIS_ORDER_EAST_NORTH)) {
+            invertXY = false;
+        } else if (axisOrder.equals(WFSDataStore.AXIS_ORDER_NORTH_EAST)) {
+            invertXY = true;
+        } else {
+            invertXY = CRS.getAxisOrder(crs).equals(CRS.AxisOrder.NORTH_EAST);
+        }
+        return invertXY;
     }
 
     private Query createNewQuery(Query model, Filter filter) {
@@ -360,9 +426,20 @@ public final class WFS_1_1_0_DataStore implements WFSDataStore {
         final SimpleFeatureType readerType = reader.getFeatureType();
 
         CoordinateReferenceSystem readerCrs = readerType.getCoordinateReferenceSystem();
-        if (queryCrs != null && !queryCrs.equals(readerCrs)) {
+        String serverSrs = getServerSrs(query);
+        if (queryCrs != null && serverSrs == null
+              && !queryCrs.equals(readerCrs)) {
             try {
                 reader = new ReprojectFeatureReader(reader, queryCrs);
+            } catch (Exception e) {
+                throw new DataSourceException(e);
+            }
+        }
+        
+        if (serverSrs != null) {
+            try {
+                reader = new ForceCoordinateSystemFeatureReader(reader,
+                        CRS.decode(serverSrs));
             } catch (Exception e) {
                 throw new DataSourceException(e);
             }
@@ -385,6 +462,34 @@ public final class WFS_1_1_0_DataStore implements WFSDataStore {
             reader = new MaxFeatureReader<SimpleFeatureType, SimpleFeature>(reader, maxFeatures);
         }
         return reader;
+    }
+    
+    /**
+     * Gets the SRS to send to the server, if it matches the one given in the query.
+     * 
+     * @param query
+     * @return
+     */
+    private String getServerSrs(Query query) {
+        CoordinateReferenceSystem queryCrs = query.getCoordinateSystem();
+        if (queryCrs != null) {
+            Set<String> supportedCRSIdentifiers;
+            if (useDefaultSRS) {
+                supportedCRSIdentifiers = new HashSet<String>();
+                supportedCRSIdentifiers.add(wfs.getDefaultCRS(query.getTypeName()));
+            } else {
+                supportedCRSIdentifiers = wfs.getSupportedCRSIdentifiers(query
+                        .getTypeName());
+            }
+            String epsgCode = GML2EncodingUtils.epsgCode(queryCrs);
+            for (String supportedCRSIdentifier : supportedCRSIdentifiers) {
+                if (supportedCRSIdentifier.endsWith(":" + epsgCode)) {
+                    return supportedCRSIdentifier;
+                }
+            }
+        }
+        return null;
+
     }
 
     /**
@@ -834,31 +939,34 @@ public final class WFS_1_1_0_DataStore implements WFSDataStore {
                         + "query will be performed in native CRS");
                 transform = true;
             } else {
-                epsgCode = "EPSG:" + epsgCode;
-                LOGGER.fine("Request CRS is " + epsgCode + ", checking if its supported for "
-                        + typeName);
-
-                Set<String> supportedCRSIdentifiers = wfs.getSupportedCRSIdentifiers(typeName);
-                if (supportedCRSIdentifiers.contains(epsgCode)) {
-                    LOGGER.fine(epsgCode + " is supported, request will be performed asking "
+                String serverEpsgCode = getServerSrs(query);
+                if (serverEpsgCode != null) {
+                    LOGGER.fine(serverEpsgCode
+                            + " is supported, request will be performed asking "
                             + "for reprojection over it");
+    
+                    epsgCode = serverEpsgCode;
                 } else {
                     LOGGER.fine(epsgCode + " is not supported for " + typeName
-                            + ". Query will be adapted to default CRS " + defaultCrs);
+                            + ". Query will be adapted to default CRS "
+                            + defaultCrs);
                     transform = true;
                 }
                 if (transform) {
                     epsgCode = defaultCrs;
                     FilterFactory2 ff = CommonFactoryFinder.getFilterFactory2(null);
                     SimpleFeatureType ftype = getSchema(typeName);
-                    ReprojectingFilterVisitor visitor = new ReprojectingFilterVisitor(ff, ftype);
+                    ReprojectingFilterVisitor visitor = new ReprojectingFilterVisitor(
+                            ff, ftype);
                     Filter filter = query.getFilter();
-                    Filter reprojectedFilter = (Filter) filter.accept(visitor, null);
+                    Filter reprojectedFilter = (Filter) filter
+                            .accept(visitor, null);
                     if (LOGGER.isLoggable(Level.FINER)) {
-                        LOGGER.finer("Original Filter: " + filter + "\nReprojected filter: "
-                                + reprojectedFilter);
+                        LOGGER.finer("Original Filter: " + filter
+                                + "\nReprojected filter: " + reprojectedFilter);
                     }
-                    LOGGER.fine("Query filter reprojected to native CRS for " + typeName);
+                    LOGGER.fine("Query filter reprojected to native CRS for "
+                            + typeName);
                     query.setFilter(reprojectedFilter);
                 }
             }
@@ -866,6 +974,11 @@ public final class WFS_1_1_0_DataStore implements WFSDataStore {
         return epsgCode;
     }
 
+    @Override
+    public void setUseDefaultSRS(Boolean useDefaultSRS) {
+        this.useDefaultSRS = useDefaultSRS;
+    }
+    
     protected int getMaxFeatures(Query query) {
         int maxFeaturesDataStoreLimit = getMaxFeatures().intValue();
         int queryMaxFeatures = query.getMaxFeatures();
@@ -877,5 +990,24 @@ public final class WFS_1_1_0_DataStore implements WFSDataStore {
             maxFeatures = Math.min(maxFeaturesDataStoreLimit, maxFeatures);
         }
         return maxFeatures;
+    }
+    
+    /**
+     * Configure expected axis order for output and filters.
+     *  
+     * @param axisOrder
+     * @param axisOrderFilter
+     */
+    public void setAxisOrder(String axisOrderOutput, String axisOrderFilter) {
+        this.axisOrderOutput = axisOrderOutput;
+        this.axisOrderFilter = axisOrderFilter;
+    }
+
+    public String getAxisOrderForOutput() {
+        return axisOrderOutput;
+    }
+
+    public String getAxisOrderForFilter() {
+        return axisOrderFilter;
     }
 }
