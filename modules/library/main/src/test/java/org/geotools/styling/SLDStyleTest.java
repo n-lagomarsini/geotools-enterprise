@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import junit.framework.Test;
@@ -138,6 +139,27 @@ public class SLDStyleTest extends TestCase {
         assertNotNull(xml);
         //we're content for the moment if this didn't throw an exception...
         //TODO: convert the buffer/resource to a string and compare
+    }
+    
+    /**
+     * XML --> SLD --> XML 
+     * @throws Exception
+     */
+    public void testSLDParserWithLocalizedTitle() throws Exception {
+        java.net.URL surl = TestData.getResource(this, "example-localized-sld.xml");
+        SLDParser stylereader = new SLDParser(sf, surl);
+        StyledLayerDescriptor sld = stylereader.parseSLD();
+        
+        //convert back to xml again
+        SLDTransformer aTransformer = new SLDTransformer();
+        String xml = aTransformer.transform(sld);
+
+        assertNotNull(xml);
+        assertTrue(xml.contains("<sld:Title>title"));
+        assertTrue(xml.contains("<sld:Localized lang=\""+Locale.ITALIAN.toString()+"\">titolo</sld:Localized>"));
+        assertTrue(xml.contains("<sld:Localized lang=\""+Locale.FRENCH.toString()+"\">titre</sld:Localized>"));
+        assertTrue(xml.contains("<sld:Localized lang=\""+Locale.CANADA_FRENCH.toString()+"\">titre</sld:Localized>"));
+        
     }
     
     public void testEmptyElements() throws Exception {
