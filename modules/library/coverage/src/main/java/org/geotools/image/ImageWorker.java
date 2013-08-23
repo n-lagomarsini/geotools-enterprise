@@ -964,16 +964,15 @@ public class ImageWorker {
      * @see RescaleDescriptor
      */
     public final ImageWorker rescaleToBytes() {
-
-        if (isIndexed()) {
-            throw new UnsupportedOperationException(
-                    "Rescaling not yet implemented for IndexColorModel.");
-        }
         
         if (isBytes()) {
             // Already using bytes - nothing to do.
             return this;
         }
+        
+        // this is to support 16 bits IndexColorModel
+        forceComponentColorModel(true, true);
+        
         final double[][] extrema = getExtremas();
         final int length = extrema[0].length;
         final double[] scale  = new double[length];
@@ -1269,7 +1268,7 @@ public class ImageWorker {
             forceComponentColorModel();
             cm= image.getColorModel();
         }
-        if(!(cm instanceof IndexColorModel))
+        if(!(cm instanceof IndexColorModel) || cm.getPixelSize()>8)
             rescaleToBytes();
         /*
          * Getting the alpha channel and separating from the others bands. If
@@ -2637,8 +2636,10 @@ public class ImageWorker {
                 if(LOGGER.isLoggable(Level.FINER)){
                     LOGGER.fine("Forcing input image to be compatible with PNG: Palette with > 256 color is not supported.");
                 }
-                forceComponentColorModel(true, true);
                 rescaleToBytes();
+                if(paletted){
+                    forceIndexColorModelForGIF(true);
+                }
             }
         }        
         
