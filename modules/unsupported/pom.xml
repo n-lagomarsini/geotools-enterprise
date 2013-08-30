@@ -154,7 +154,25 @@
          <module>ogr</module>
        </modules>
      </profile>
-     
+     <profile>
+       <activation>
+         <property><name>all</name></property>
+       </activation>     
+       <id>gpx</id>
+       <modules>
+         <module>gpx</module>
+       </modules>
+     </profile>
+     <profile>
+       <activation>
+         <property><name>all</name></property>
+       </activation>     
+       <id>xml-gpx</id>
+       <modules>
+         <module>xml-gpx</module>
+       </modules>
+     </profile>
+               
      <profile>
        <id>unsupported</id>
        <activation>
