@@ -19,6 +19,7 @@ function usage() {
 
 echo "----------------------------"
 echo "PATH: $PATH"
+mvn -version
 echo "----------------------------"
 
 # parse options
