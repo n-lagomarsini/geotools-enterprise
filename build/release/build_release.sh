@@ -77,11 +77,11 @@ echo "  tag = $tag"
 mvn -version
 
 # ensure there is a jira release
-jira_id=`get_jira_id $tag`
-if [ -z $jira_id ]; then
-  echo "Could not locate release $tag in JIRA"
-  exit -1
-fi
+#jira_id=`get_jira_id $tag`
+#if [ -z $jira_id ]; then
+#  echo "Could not locate release $tag in JIRA"
+#  exit -1
+#fi
 
 if [ ! -z $git_user ] && [ ! -z $git_email ]; then
   git_opts="--author $git_user <$git_email>"
@@ -94,7 +94,12 @@ pushd ../../ > /dev/null
 git reset --hard HEAD
 
 # change to release branch
-git checkout rel_$branch
+set +e && git checkout rel_$branch && set -e
+if [ $? == 1 ]; then
+  # release branch does not exists
+  echo "branch rel_$branch does not exists, creating it"
+  git checkout -b rel_$branch
+fi
 
 # check to see if a release branch already exists
 set +e && git checkout rel_$tag && set -e
