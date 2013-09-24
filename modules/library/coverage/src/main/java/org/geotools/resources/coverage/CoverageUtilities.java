@@ -44,6 +44,7 @@ import org.geotools.metadata.iso.spatial.PixelTranslation;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.operation.matrix.XAffineTransform;
 import org.geotools.resources.CRSUtilities;
+import org.geotools.resources.coverage.CoverageUtilities.UCUM.UCUMUnit;
 import org.geotools.resources.i18n.ErrorKeys;
 import org.geotools.resources.i18n.Errors;
 import org.geotools.resources.i18n.Vocabulary;
@@ -665,4 +666,41 @@ public final class CoverageUtilities {
 			throw new IllegalAccessError(Errors.format(ErrorKeys.ILLEGAL_ARGUMENT_$2,"dataType",dataType));
 		}
 	}
+	
+        /**
+         * Unified Code for Units of Measure (UCUM)
+         */
+        public static class UCUM {
+    
+            /**
+             * An UCUM Unit instance simply made of name and symbol.
+             */
+            public static class UCUMUnit {
+    
+                private String name;
+    
+                private String symbol;
+    
+                public UCUMUnit(String name, String symbol) {
+                    this.name = name;
+                    this.symbol = symbol;
+                }
+    
+                public String getName() {
+                    return name;
+                }
+    
+                public String getSymbol() {
+                    return symbol;
+                }
+            }
+    
+            /**
+             * Commonly used UCUM units. In case this set will grow too much, we may consider importing some UCUM specialized library.
+             */
+            public final static UCUMUnit TIME_UNITS = new UCUMUnit("second", "s");
+    
+            public final static UCUMUnit ELEVATION_UNITS = new UCUMUnit("meter", "m");
+    
+        }
 }
