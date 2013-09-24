@@ -17,6 +17,10 @@ function usage() {
   echo
 }
 
+echo "----------------------------"
+echo "PATH: $PATH"
+echo "----------------------------"
+
 # parse options
 while getopts "hb:r:u:e:" opt; do
   case $opt in
