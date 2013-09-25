@@ -123,7 +123,7 @@ ant -f rename.xml
 popd > /dev/null
 
 # build the release
-if [ -z $SKIP_BUILD -o "$SKIP_BUILD"=="true" ]; then
+if [ -z $SKIP_BUILD -o $SKIP_BUILD="false" ]; then
   echo "build project"
   mvn $MAVEN_FLAGS -DskipTests -Dall clean install
 else
