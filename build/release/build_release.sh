@@ -89,10 +89,6 @@ mvn -version
 #  exit -1
 #fi
 
-if [ ! -z $git_user ] && [ ! -z $git_email ]; then
-  git_opts="--author $git_user <$git_email>"
-fi
-
 # move to root of repo
 pushd ../../ > /dev/null
 
@@ -187,8 +183,11 @@ fi
 echo "copying artifacts to $dist"
 cp $target/*.zip $dist
 
-echo "commit changes with options: $git_opts"
+echo "commit changes with options:"
 # commit changes 
+if [ ! -z $git_user ] && [ ! -z $git_email ]; then
+  git_opts="--author=\"$git_user <$git_email>\""
+fi
 git add .
 git commit $git_opts -m "updating version numbers and README for $tag"
 
