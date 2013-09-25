@@ -183,13 +183,13 @@ fi
 echo "copying artifacts to $dist"
 cp $target/*.zip $dist
 
-echo "commit changes with options:"
 # commit changes 
 if [ ! -z $git_user ] && [ ! -z $git_email ]; then
   git_opts="--author=\"$git_user <$git_email>\""
 fi
 git add .
-git commit $git_opts -m "updating version numbers and README for $tag"
+echo "commit changes: git commit $git_opts -m \"updating version numbers and README for $tag\""
+git commit "$git_opts" -m "updating version numbers and README for $tag"
 
 popd > /dev/null
 
