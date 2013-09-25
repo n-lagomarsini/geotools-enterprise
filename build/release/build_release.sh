@@ -127,12 +127,17 @@ ant -f rename.xml
 popd > /dev/null
 
 # build the release
-if [ -z $SKIP_BUILD ]; then
-  echo "building release"
+if [ -z $SKIP_BUILD -o "$SKIP_BUILD"=="true" ]; then
+  echo "build project"
   mvn $MAVEN_FLAGS -DskipTests -Dall clean install
-  mvn $MAVEN_FLAGS -DskipTests assembly:assembly
+else
+  echo "skip build"
 fi
 
+echo "build release"
+mvn $MAVEN_FLAGS -DskipTests assembly:assembly
+
+echo "sanitize the bin artifact"
 # sanitize the bin artifact
 pushd target > /dev/null
 bin=geotools-$tag-bin.zip
@@ -148,6 +153,7 @@ popd > /dev/null
 
 target=`pwd`/target
 
+echo "build the javadocs"
 # build the javadocs
 pushd modules > /dev/null
 mvn javadoc:aggregate
@@ -156,6 +162,7 @@ zip -r $target/geotools-$tag-doc.zip apidocs
 popd > /dev/null
 popd > /dev/null
 
+echo "build the user docs"
 # build the user docs
 pushd docs > /dev/null
 mvn $MAVEN_FLAGS install
@@ -164,6 +171,7 @@ zip -r $target/geotools-$tag-userguide.zip html
 popd > /dev/null
 popd > /dev/null
 
+echo "copy over the artifacts"
 # copy over the artifacts
 if [ ! -e $DIST_PATH ]; then
   mkdir -p $DIST_PATH
@@ -171,12 +179,15 @@ fi
 dist=$DIST_PATH/$tag
 if [ -e $dist ]; then
   rm -rf $dist
+  mkdir $dist
+else
+  mkdir $dist
 fi
-mkdir $dist
 
 echo "copying artifacts to $dist"
 cp $target/*.zip $dist
 
+echo "commit changes with options: $git_opts"
 # commit changes 
 git add .
 git commit $git_opts -m "updating version numbers and README for $tag"
