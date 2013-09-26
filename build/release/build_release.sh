@@ -88,19 +88,19 @@ pushd ../../ > /dev/null
 # clear out any changes
 git reset --hard HEAD
 
+# checkout and update primary / release branches
+git checkout $branch
+git pull origin $branch
+
 # change to release branch
 set +e && git checkout rel_$branch && set -e
 if [ $? == 1 ]; then
   # release branch does not exists
   echo "branch rel_$branch does not exists, creating it"
   git checkout -b rel_$branch
+else
+  git pull origin rel_$branch
 fi
-
-# checkout and update primary / release branches
-git checkout rel_$branch
-git pull origin rel_$branch
-git checkout $branch
-git pull origin $branch
 
 # check to see if a release branch already exists
 set +e && git checkout rel_$tag && set -e
