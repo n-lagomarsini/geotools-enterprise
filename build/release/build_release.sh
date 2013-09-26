@@ -99,7 +99,7 @@ if [ $? == 1 ]; then
   echo "branch rel_$branch does not exists, creating it"
   git checkout -b rel_$branch
 else
-  git pull origin rel_$branch
+  set +e && git pull origin rel_$branch && set -e
 fi
 
 # check to see if a release branch already exists

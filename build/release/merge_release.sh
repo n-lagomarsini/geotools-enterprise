@@ -11,9 +11,6 @@ function usage() {
   echo "Options:"
   echo " -h          : Print usage"
   echo " -b <branch> : Branch to release from (eg: master, 8.x, ...)"
-  echo " -r <rev>    : Revision to release (eg: a1b2kc4...)"
-  echo " -u <user>   : git user"
-  echo " -e <passwd> : git email"
   echo
 }
 
@@ -26,15 +23,6 @@ while getopts "hb:r:u:e:" opt; do
       ;;
     b)
       branch=$OPTARG
-      ;;
-    r)
-      rev=$OPTARG
-      ;;
-    u)
-      git_user=$OPTARG
-      ;;
-    e)
-      git_email=$OPTARG
       ;;
     \?)
       usage
@@ -72,7 +60,6 @@ fi
 
 echo "Parameters:"
 echo "  branch = $branch"
-echo "  revision = $rev"
 echo "  tag = $tag"
 
 # move to root of repo
