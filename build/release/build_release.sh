@@ -88,19 +88,21 @@ pushd ../../ > /dev/null
 # clear out any changes
 git reset --hard HEAD
 
-# checkout and update primary / release branches
-git checkout $branch
-git pull origin $branch
-
-# change to release branch
+# checkout release branch
 set +e && git checkout rel_$branch && set -e
 if [ $? == 1 ]; then
   # release branch does not exists
+  git checkout $branch
   echo "branch rel_$branch does not exists, creating it"
   git checkout -b rel_$branch
 else
+  # update release branches
   set +e && git pull origin rel_$branch && set -e
 fi
+
+# checkout and update primary branche
+git checkout $branch
+git pull origin $branch
 
 # check to see if a release branch already exists
 set +e && git checkout rel_$tag && set -e
@@ -116,6 +118,16 @@ git checkout $branch
 
 # create a release branch
 git checkout -b rel_$tag $rev
+
+if [ -z $SKIP_JIRA ]
+  # generate release notes
+  jira_id=`get_jira_id $tag`
+  if [ -z $jira_id ]; then
+    echo "Could not locate release $tag in JIRA"
+    exit -1
+  fi
+  echo "jira id = $jira_id"
+fi
 
 # update versions
 pushd build > /dev/null

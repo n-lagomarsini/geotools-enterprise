@@ -65,9 +65,6 @@ echo "  tag = $tag"
 # move to root of repo
 pushd ../../ > /dev/null
 
-# clear out any changes
-#git reset --hard HEAD
-
 # check to see if a release branch already exists
 set +e && git checkout rel_$tag && set -e
 if [ $? == 1 ]; then
@@ -75,6 +72,15 @@ if [ $? == 1 ]; then
   echo "branch rel_$tag does not exists, ERROR: run build_release.sh before"
   exit 1;
 fi
+
+# ensure no changes on it
+set +e
+git status | grep "working directory clean"
+if [ "$?" == "1" ]; then
+  echo "branch rel_$tag dirty, exiting"
+  exit 1
+fi
+set -e
 
 # change to release branch
 set +e && git checkout rel_$branch && set -e
