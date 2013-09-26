@@ -17,11 +17,6 @@ function usage() {
   echo
 }
 
-echo "----------------------------"
-echo "PATH: $PATH"
-mvn -version
-echo "----------------------------"
-
 # parse options
 while getopts "hb:r:u:e:" opt; do
   case $opt in
@@ -80,8 +75,6 @@ echo "  branch = $branch"
 echo "  revision = $rev"
 echo "  tag = $tag"
 
-mvn -version
-
 # ensure there is a jira release
 #jira_id=`get_jira_id $tag`
 #if [ -z $jira_id ]; then
@@ -103,14 +96,23 @@ if [ $? == 1 ]; then
   git checkout -b rel_$branch
 fi
 
+# checkout and update primary / release branches
+git checkout rel_$branch
+git pull origin rel_$branch
+git checkout $branch
+git pull origin $branch
+
 # check to see if a release branch already exists
 set +e && git checkout rel_$tag && set -e
 if [ $? == 0 ]; then
   # release branch already exists, kill it
+  git checkout $branch
   echo "branch rel_$tag exists, deleting it"
-  git checkout rel_$branch
   git branch -D rel_$tag
 fi
+
+# checkout the branch to release from
+git checkout $branch
 
 # create a release branch
 git checkout -b rel_$tag $rev
