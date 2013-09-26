@@ -177,7 +177,7 @@
   <groupId>org.geotools</groupId>
   <artifactId>geotools</artifactId>
   <packaging>pom</packaging>
-  <version>8-ENTERPRISE-SNAPSHOT</version>
+  <version>8.8-ENTERPRISE</version>
   <name>Geotools</name>
 
   <scm>

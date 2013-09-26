@@ -16,7 +16,7 @@
   <parent>
     <groupId>org.geotools</groupId>
     <artifactId>plugin</artifactId>
-    <version>8-ENTERPRISE-SNAPSHOT</version>
+    <version>8.8-ENTERPRISE</version>
   </parent>
 
   <!--properties>

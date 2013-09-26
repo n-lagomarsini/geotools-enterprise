@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.geotools</groupId>
         <artifactId>extension</artifactId>
-        <version>8-ENTERPRISE-SNAPSHOT</version>
+        <version>8.8-ENTERPRISE</version>
     </parent>
 
     <groupId>org.geotools</groupId>
