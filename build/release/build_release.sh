@@ -119,7 +119,7 @@ git checkout $branch
 # create a release branch
 git checkout -b rel_$tag $rev
 
-if [ -z $SKIP_JIRA ]
+if [ -z $SKIP_JIRA ]; then
   # generate release notes
   jira_id=`get_jira_id $tag`
   if [ -z $jira_id ]; then
