@@ -79,7 +79,7 @@ echo "  tag = $tag"
 pushd ../../ > /dev/null
 
 # clear out any changes
-git reset --hard HEAD
+#git reset --hard HEAD
 
 # check to see if a release branch already exists
 set +e && git checkout rel_$tag && set -e
