@@ -56,6 +56,11 @@ if [ -z $tag ] || [ ! -z $2 ]; then
   usage
   exit 1
 fi
+
+# load properties + functions
+. "$( cd "$( dirname "$0" )" && pwd )"/properties
+. "$( cd "$( dirname "$0" )" && pwd )"/functions
+
 if [ `is_version_num $tag` == "0" ]; then  
   echo "$tag is a not a valid release tag"
   exit 1
@@ -65,27 +70,18 @@ if [ `is_primary_branch_num $tag` == "1" ]; then
   exit 1
 fi
 
-# load properties + functions
-. "$( cd "$( dirname "$0" )" && pwd )"/properties
-. "$( cd "$( dirname "$0" )" && pwd )"/functions
-
 echo "Building release with following parameters:"
 echo "  branch = $branch"
 echo "  revision = $rev"
 echo "  tag = $tag"
 
-mvn -version
-
-# ensure there is a jira release
-jira_id=`get_jira_id $tag`
-if [ -z $jira_id ]; then
-  echo "Could not locate release $tag in JIRA"
-  exit -1
-fi
-
-if [ ! -z $git_user ] && [ ! -z $git_email ]; then
-  git_opts="--author $git_user <$git_email>"
-fi
+#  # generate release notes
+#  jira_id=`get_jira_id $tag`
+#  if [ -z $jira_id ]; then
+#    echo "Could not locate release $tag in JIRA"
+#    exit -1
+#  fi
+#  echo "jira id = $jira_id"
 
 # move to root of repo
 pushd ../../ > /dev/null
@@ -93,17 +89,33 @@ pushd ../../ > /dev/null
 # clear out any changes
 git reset --hard HEAD
 
-# change to release branch
-git checkout rel_$branch
+# checkout release branch
+set +e && git checkout rel_$branch && set -e
+if [ $? == 1 ]; then
+  # release branch does not exists
+  git checkout $branch
+  echo "branch rel_$branch does not exists, creating it"
+  git checkout -b rel_$branch
+else
+  # update release branches
+  set +e && git pull origin rel_$branch && set -e
+fi
+
+# checkout and update primary branche
+git checkout $branch
+git pull origin $branch
 
 # check to see if a release branch already exists
 set +e && git checkout rel_$tag && set -e
 if [ $? == 0 ]; then
   # release branch already exists, kill it
+  git checkout $branch
   echo "branch rel_$tag exists, deleting it"
-  git checkout rel_$branch
   git branch -D rel_$tag
 fi
+
+# checkout the branch to release from
+git checkout $branch
 
 # create a release branch
 git checkout -b rel_$tag $rev
@@ -116,12 +128,11 @@ ant -f rename.xml
 popd > /dev/null
 
 # build the release
-if [ -z $SKIP_BUILD ]; then
-  echo "building release"
-  mvn $MAVEN_FLAGS -DskipTests -Dall clean install
-  mvn $MAVEN_FLAGS -DskipTests assembly:assembly
-fi
-
+echo "Build project"
+mvn $MAVEN_FLAGS -DskipTests -Dall clean install
+echo "build release"
+mvn $MAVEN_FLAGS -DskipTests assembly:assembly
+echo "Sanitize the bin artifact"
 # sanitize the bin artifact
 pushd target > /dev/null
 bin=geotools-$tag-bin.zip
@@ -137,6 +148,7 @@ popd > /dev/null
 
 target=`pwd`/target
 
+echo "build the javadocs"
 # build the javadocs
 pushd modules > /dev/null
 mvn javadoc:aggregate
@@ -145,6 +157,7 @@ zip -r $target/geotools-$tag-doc.zip apidocs
 popd > /dev/null
 popd > /dev/null
 
+echo "build the user docs"
 # build the user docs
 pushd docs > /dev/null
 mvn $MAVEN_FLAGS install
@@ -153,6 +166,7 @@ zip -r $target/geotools-$tag-userguide.zip html
 popd > /dev/null
 popd > /dev/null
 
+echo "copy over the artifacts"
 # copy over the artifacts
 if [ ! -e $DIST_PATH ]; then
   mkdir -p $DIST_PATH
@@ -160,15 +174,21 @@ fi
 dist=$DIST_PATH/$tag
 if [ -e $dist ]; then
   rm -rf $dist
+  mkdir $dist
+else
+  mkdir $dist
 fi
-mkdir $dist
 
 echo "copying artifacts to $dist"
 cp $target/*.zip $dist
 
 # commit changes 
+if [ ! -z $git_user ] && [ ! -z $git_email ]; then
+  git_opts="--author=\"$git_user <$git_email>\""
+fi
 git add .
-git commit $git_opts -m "updating version numbers and README for $tag"
+echo "commit changes: git commit $git_opts -m \"updating version numbers and README for $tag\""
+git commit "$git_opts" -m "updating version numbers and README for $tag"
 
 popd > /dev/null
 
