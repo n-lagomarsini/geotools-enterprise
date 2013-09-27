@@ -95,10 +95,10 @@ public class Multiply extends OperationJAI {
         if (ranges != null && ranges.length == 2){
             final NumberRange range0 = ranges[0];
             final NumberRange range1 = ranges[1];
-            final double min0 = range0.getMinimum();
-            final double min1 = range1.getMinimum();
-            final double max0 = range0.getMaximum();
-            final double max1 = range1.getMaximum();
+            final double min0 = range0 != null ? range0.getMinimum() : 0;
+            final double min1 = range1 != null ? range1.getMinimum() : 0;
+            final double max0 = range0 != null ? range0.getMaximum() : 1;
+            final double max1 = range1 != null ? range1.getMaximum() : 1;
             final double max = max0 * max1;
             final double min = min0 * min1;
             return NumberRange.create(min, max);
