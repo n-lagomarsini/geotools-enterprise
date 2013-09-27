@@ -338,6 +338,7 @@ public class RasterZonalStatistics implements GSProcess {
                             double max = category.getRange().getMaximum();
                             if (!Double.isNaN(min) && !Double.isNaN(max)) {
                                 // we have to filter those out
+                            	if (min == max) min = Double.NEGATIVE_INFINITY;
                                 Range<Double> novalueRange = new Range<Double>(min, true, max, true);
                                 novalueRangeList = new ArrayList<Range<Double>>();
                                 novalueRangeList.add(novalueRange);
@@ -346,7 +347,7 @@ public class RasterZonalStatistics implements GSProcess {
                         }
                     }
                 }
-
+                
                 /*
                  * crop on region of interest
                  */
