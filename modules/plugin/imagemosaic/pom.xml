@@ -88,16 +88,6 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.geotools.jdbc</groupId>
-      <artifactId>gt-jdbc-h2</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.geotools.jdbc</groupId>
-      <artifactId>gt-jdbc-oracle</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
       <groupId>org.geotools</groupId>
       <artifactId>gt-coverage</artifactId>
       <version>${project.version}</version>
@@ -107,12 +97,6 @@
       <artifactId>gt-jdbc-postgis</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-      <artifactId>ojdbc14</artifactId>
-      <groupId>com.oracle</groupId>
-      <scope>provided</scope>
-      <!-- version specified in root pom -->
     </dependency>
     <dependency>
       <groupId>com.vividsolutions</groupId>

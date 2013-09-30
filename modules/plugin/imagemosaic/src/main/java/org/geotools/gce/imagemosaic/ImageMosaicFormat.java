@@ -44,8 +44,6 @@ import org.geotools.data.DataAccessFactory.Param;
 import org.geotools.data.DataStore;
 import org.geotools.data.DataStoreFactorySpi;
 import org.geotools.data.DataUtilities;
-import org.geotools.data.h2.H2DataStoreFactory;
-import org.geotools.data.h2.H2JNDIDataStoreFactory;
 import org.geotools.data.shapefile.ShapefileDataStore;
 import org.geotools.data.simple.SimpleFeatureSource;
 import org.geotools.factory.Hints;
@@ -169,13 +167,6 @@ public final class ImageMosaicFormat extends AbstractGridFormat implements Forma
     public static final ParameterDescriptor<String> SORT_BY = new DefaultParameterDescriptor<String>("SORTING",String.class, null, null);
     
     /**
-     * Merging behavior for the various granules of the mosaic we are going to produce.
-     * 
-     * <p>
-     * This parameter controls whether we want to merge in a single mosaic or stack all the bands into the final mosaic.
-     */
-    public static final ParameterDescriptor<String> MERGE_BEHAVIOR = new DefaultParameterDescriptor<String>("MergeBehavior",String.class,MergeBehavior.valuesAsStrings(), MergeBehavior.getDefault().toString());
-    /**
      * Creates an instance and sets the metadata.
      */
     public ImageMosaicFormat() {
@@ -208,8 +199,7 @@ public final class ImageMosaicFormat extends AbstractGridFormat implements Forma
                 TIME,
                 ELEVATION,
                 FILTER,
-                SORT_BY,
-                MERGE_BEHAVIOR
+                SORT_BY
         }));
 
         // reading parameters
@@ -340,16 +330,6 @@ public final class ImageMosaicFormat extends AbstractGridFormat implements Forma
     							return false;
     						}
     				}						
-    				// H2 workadound
-    				if(spi instanceof H2DataStoreFactory || spi instanceof H2JNDIDataStoreFactory){
-    					if(params.containsKey(H2DataStoreFactory.DATABASE.key)){
-    						String dbname = (String) params.get(H2DataStoreFactory.DATABASE.key);
-    						// H2 database URLs must not be percent-encoded: see GEOT-4262.
-    						params.put(H2DataStoreFactory.DATABASE.key,
-    						        "file:" + (new File(sourceF.getParentFile(), dbname)).getPath());
-    					}
-    				}   
-    				
     				tileIndexStore=spi.createDataStore(params);
         			if(tileIndexStore==null)
         				return false;

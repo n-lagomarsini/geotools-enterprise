@@ -37,7 +37,7 @@ import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.visitor.FeatureCalc;
 import org.geotools.gce.imagemosaic.GranuleDescriptor;
 import org.geotools.gce.imagemosaic.ImageMosaicReader;
-import org.geotools.gce.imagemosaic.Utils;
+import org.geotools.gce.imagemosaic.catalog.GTDataStoreGranuleCatalog.BBOXFilterExtractor;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.resources.coverage.FeatureUtilities;
 import org.geotools.util.Utilities;
@@ -340,7 +340,8 @@ class STRTreeGranuleCatalog extends AbstractGranuleCatalog {
 	}
 
 	private ReferencedEnvelope extractAndCombineBBox(Filter filter) {
-		final Utils.BBOXFilterExtractor bboxExtractor = new Utils.BBOXFilterExtractor();
+		// TODO extract eventual bbox from query here
+		final BBOXFilterExtractor bboxExtractor = new GTDataStoreGranuleCatalog.BBOXFilterExtractor();
 		filter.accept(bboxExtractor, null);
 		ReferencedEnvelope requestedBBox=bboxExtractor.getBBox();
 		
@@ -352,9 +353,8 @@ class STRTreeGranuleCatalog extends AbstractGranuleCatalog {
 			// create intersection
 			final ReferencedEnvelope referencedEnvelope= new ReferencedEnvelope(intersection,wrappedCatalogue.getBounds().getCoordinateReferenceSystem());
 		}
-		else{
-		    return ReferencedEnvelope.reference(wrappedCatalogue.getBounds());
-		}
+		else
+			return ReferencedEnvelope.reference(wrappedCatalogue.getBounds());
 		return requestedBBox;
 	}
 

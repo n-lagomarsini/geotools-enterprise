@@ -507,6 +507,7 @@ public final class TypeMap {
      * @return The code for the specified color model and band number.
      * @throws IllegalArgumentException if the band number is not in the valid range.
      */
+	@SuppressWarnings("deprecation")
 	public static ColorInterpretation getColorInterpretation(final ColorModel model, final int band)
             throws IllegalArgumentException
     {

@@ -16,10 +16,8 @@
  */
 package org.geotools.gce.imagemosaic.catalog;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
@@ -44,8 +42,6 @@ import org.geotools.data.FeatureWriter;
 import org.geotools.data.Query;
 import org.geotools.data.QueryCapabilities;
 import org.geotools.data.Transaction;
-import org.geotools.data.h2.H2DataStoreFactory;
-import org.geotools.data.h2.H2JNDIDataStoreFactory;
 import org.geotools.data.postgis.PostgisNGDataStoreFactory;
 import org.geotools.data.postgis.PostgisNGJNDIDataStoreFactory;
 import org.geotools.data.simple.SimpleFeatureCollection;
@@ -58,6 +54,7 @@ import org.geotools.factory.GeoTools;
 import org.geotools.feature.SchemaException;
 import org.geotools.feature.collection.AbstractFeatureVisitor;
 import org.geotools.feature.visitor.FeatureCalc;
+import org.geotools.filter.visitor.DefaultFilterVisitor;
 import org.geotools.gce.imagemosaic.GranuleDescriptor;
 import org.geotools.gce.imagemosaic.ImageMosaicReader;
 import org.geotools.gce.imagemosaic.PathType;
@@ -72,6 +69,7 @@ import org.opengis.feature.type.AttributeDescriptor;
 import org.opengis.feature.type.FeatureType;
 import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory2;
+import org.opengis.filter.spatial.BBOX;
 import org.opengis.geometry.BoundingBox;
 
 /**
@@ -101,6 +99,40 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
         static final TimeZone UTC_TZ = TimeZone.getTimeZone("UTC");
     
 	final static FilterFactory2 ff = CommonFactoryFinder.getFilterFactory2( GeoTools.getDefaultHints() );
+	
+	/**
+	 * Extracts a bbox from a filter in case there is at least one.
+	 * 
+	 * I am simply looking for the BBOX filter but I am sure we could
+	 * use other filters as well. I will leave this as a todo for the moment.
+	 * 
+	 * @author Simone Giannecchini, GeoSolutions SAS.
+	 * @todo TODO use other spatial filters as well
+	 */
+	@SuppressWarnings("deprecation")
+	static class BBOXFilterExtractor extends DefaultFilterVisitor{
+
+		public ReferencedEnvelope getBBox() {
+			return bbox;
+		}
+		private ReferencedEnvelope bbox;
+		@Override
+		public Object visit(BBOX filter, Object data) {
+			final ReferencedEnvelope bbox= new ReferencedEnvelope(
+					filter.getMinX(),
+					filter.getMaxX(),
+					filter.getMinY(),
+					filter.getMaxY(),
+					null);
+			if(this.bbox!=null)
+				this.bbox=(ReferencedEnvelope) this.bbox.intersection(bbox);
+			else
+				this.bbox=bbox;
+			return super.visit(filter, data);
+		}
+		
+	}
+	
 	
 	private DataStore tileIndexStore;
 
@@ -144,17 +176,6 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 			    this.heterogeneous = ((Boolean) heterogen).booleanValue();
 			}
 			
-			// H2 workadound
-			if(spi instanceof H2DataStoreFactory || spi instanceof H2JNDIDataStoreFactory){
-				if(params.containsKey(H2DataStoreFactory.DATABASE.key)){
-					String dbname = (String) params.get(H2DataStoreFactory.DATABASE.key);
-					// H2 database URLs must not be percent-encoded: see GEOT-4262.
-					params.put(H2DataStoreFactory.DATABASE.key,
-					        "file:" + (new File(DataUtilities.urlToFile(new URL(parentLocation)),
-					                        dbname)).getPath());
-				}
-			}
-			
 			// creating a store, this might imply creating it for an existing underlying store or 
 			// creating a brand new one
 			if(!create)
@@ -172,9 +193,8 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 
 			
 			// is this a new store? If so we do not set any properties
-			if(create){
-			    return;
-			}
+			if(create)
+				return;
 				
 			// if this is not a new store let's extract basic properties from it
 			if(spi instanceof PostgisNGJNDIDataStoreFactory||spi instanceof PostgisNGDataStoreFactory){
@@ -440,10 +460,9 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 			// reused
 			//
 			final SimpleFeatureSource featureSource = tileIndexStore.getFeatureSource(this.typeName);
-			if (featureSource == null){
+			if (featureSource == null) 
 				throw new NullPointerException(
-						"The provided SimpleFeatureSource is null, it's impossible to create an index!");	
-			}
+						"The provided SimpleFeatureSource is null, it's impossible to create an index!");			
 			final SimpleFeatureCollection features = featureSource.getFeatures( q );
 			if (features == null) 
 				throw new NullPointerException(
@@ -604,9 +623,7 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 		try{
 			lock.lock();
 			checkStore();
-			if(typeName==null){
-			    return null;
-			}
+			
 			return tileIndexStore.getSchema(typeName);
 		}finally{
 			lock.unlock();

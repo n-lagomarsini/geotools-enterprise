@@ -74,7 +74,6 @@ import org.geotools.coverage.grid.io.UnknownFormat;
 import org.geotools.data.DataStoreFactorySpi;
 import org.geotools.data.DataUtilities;
 import org.geotools.data.DefaultTransaction;
-import org.geotools.data.Query;
 import org.geotools.data.shapefile.ShapefileDataStoreFactory;
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
 import org.geotools.gce.image.WorldImageFormat;
@@ -94,7 +93,6 @@ import org.geotools.resources.coverage.CoverageUtilities;
 import org.geotools.util.Utilities;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
-import org.opengis.filter.Filter;
 import org.opengis.geometry.Envelope;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.datum.PixelInCell;
@@ -271,7 +269,7 @@ public class CatalogBuilder implements Runnable {
 	 */
 	final class CatalogBuilderDirectoryWalker  extends DirectoryWalker{
 
-        private DefaultTransaction transaction;
+		private DefaultTransaction transaction;
                 private volatile boolean canceled;
 		
 		@Override
@@ -504,27 +502,12 @@ public class CatalogBuilder implements Runnable {
 						featureBuilder.add(runConfiguration.getLocationAttribute().trim(), String.class);
 						featureBuilder.add("the_geom", Polygon.class,actualCRS);
 						featureBuilder.setDefaultGeometry("the_geom");
-						String timeAttribute = runConfiguration.getTimeAttribute();
-						addAttributes(timeAttribute, featureBuilder, Date.class);
+						if(runConfiguration.getTimeAttribute()!=null)
+							featureBuilder.add(runConfiguration.getTimeAttribute().trim(), Date.class);
 						indexSchema = featureBuilder.buildFeatureType();
 					}
-					
 					// create the schema for the new shape file
-					final SimpleFeatureType type = catalog.getType();
-					try{
-                                            if(type==null){
-                                                catalog.createType(indexSchema);
-                                            } else {
-                                                // remove them all, assuming the schema has not changed
-                                                final Query query = new Query(type.getTypeName());
-                                                query.setFilter(Filter.INCLUDE);
-                                                catalog.removeGranules(query);
-                                            }
-                                        } catch (Exception e) {
-                                            // ignore exception
-                                            if(LOGGER.isLoggable(Level.FINEST))
-                                                    LOGGER.log(Level.FINEST,e.getLocalizedMessage(),e);
-                                        }
+					catalog.createType(indexSchema);
 					
 				} else {
 				    if (!mosaicConfiguration.isHeterogeneous()){
@@ -596,14 +579,8 @@ public class CatalogBuilder implements Runnable {
 						pc.collect(fileBeingProcessed).collect(coverageReader).collect(imageioReader).setProperties(feature);
 						pc.reset();
 					}
-				
-				try{
-				    catalog.addGranule(feature,transaction);
-            			} catch (Exception e) {
-                                    // ignore exception
-                                    if(LOGGER.isLoggable(Level.FINEST))
-                                            LOGGER.log(Level.FINEST,e.getLocalizedMessage(),e);
-            			}
+
+				catalog.addGranule(feature,transaction);
 
 				// fire event
 				fireEvent(Level.FINE,"Done with file "+fileBeingProcessed, (((fileIndex + 1) * 99.0) / numFiles));
@@ -658,24 +635,6 @@ public class CatalogBuilder implements Runnable {
 			
 			super.handleFile(fileBeingProcessed, depth, results);
 		}
-
-        private void addAttributes(String attribute, SimpleFeatureTypeBuilder featureBuilder, Class classType) {
-            if(attribute!=null){
-                if (!attribute.contains(Utils.RANGE_SPLITTER_CHAR)) {
-                    featureBuilder.add(attribute, classType);
-                } else {
-                    String[] ranges = attribute.split(Utils.RANGE_SPLITTER_CHAR);
-                    if (ranges.length != 2) {
-                        throw new IllegalArgumentException("All ranges attribute need to be composed of a maximum of 2 elements:\n"
-                                + "As an instance (min;max) or (low;high) or (begin;end) , ...");
-                    } else {
-                        featureBuilder.add(ranges[0], classType);
-                        featureBuilder.add(ranges[1], classType);
-                    }
-                }
-            }
-            
-        }
 
         private String prepareLocation(final File fileBeingProcessed) throws IOException {
 			//absolute
@@ -1122,15 +1081,12 @@ public class CatalogBuilder implements Runnable {
                         // time attr
                         if (props.containsKey(Prop.TIME_ATTRIBUTE))
                                 configuration.setTimeAttribute(props.getProperty(Prop.TIME_ATTRIBUTE));
-
+                        
                         // elevation attr
                         if (props.containsKey(Prop.ELEVATION_ATTRIBUTE))
-                                configuration.setElevationAttribute(props.getProperty(Prop.ELEVATION_ATTRIBUTE));
-
-                     // Additional domain attr
-                        if (props.containsKey(Prop.ADDITIONAL_DOMAIN_ATTRIBUTES))
-                            configuration.setAdditionalDomainAttribute(props.getProperty(Prop.ADDITIONAL_DOMAIN_ATTRIBUTES));
-
+                                configuration.setElevationAttribute(props.getProperty(Prop.ELEVATION_ATTRIBUTE));                       
+        
+                        
                         // imposed BBOX
                         if (props.containsKey(Prop.ENVELOPE2D))
                                 configuration.setEnvelope2D(props.getProperty(Prop.ENVELOPE2D));        
@@ -1340,11 +1296,6 @@ public class CatalogBuilder implements Runnable {
 				// create a datastore as instructed
 				final DataStoreFactorySpi spi = (DataStoreFactorySpi) Class.forName(SPIClass).newInstance();
 				final Map<String, Serializable> params = Utils.createDataStoreParamsFromPropertiesFile(properties,spi);
-
-			            // set ParentLocation parameter since for embedded database like H2 we must change the database
-			            // to incorporate the path where to write the db
-			            params.put("ParentLocation", DataUtilities.fileToURL(parent).toExternalForm());
-
 				catalog=GranuleCatalogFactory.createGranuleCatalog(params,false,true, spi);
 			} catch (ClassNotFoundException e) {
 				final IOException ioe = new IOException();
@@ -1531,11 +1482,6 @@ public class CatalogBuilder implements Runnable {
         			if (elevationAttribute != null) {
         				mosaicConfiguration.setElevationAttribute(runConfiguration.getElevationAttribute());
         			}
-        			
-        			final String additionalDomainAttribute= runConfiguration.getAdditionalDomainAttribute();
-        			if (additionalDomainAttribute != null) {
-        			    mosaicConfiguration.setAdditionalDomainAttributes(runConfiguration.getAdditionalDomainAttribute());
-        			}
         			createPropertiesFiles();
         			
         			// processing information
@@ -1606,11 +1552,6 @@ public class CatalogBuilder implements Runnable {
 		final String elevationAttribute=mosaicConfiguration.getElevationAttribute();
 		if (elevationAttribute != null) {
 			properties.setProperty("ElevationAttribute", mosaicConfiguration.getElevationAttribute());
-		}
-		
-		final String additionalDomainAttribute=mosaicConfiguration.getAdditionalDomainAttributes();
-		if (additionalDomainAttribute!= null) {
-		    properties.setProperty(Utils.Prop.ADDITIONAL_DOMAIN_ATTRIBUTES, mosaicConfiguration.getAdditionalDomainAttributes());
 		}
 		
 		final int numberOfLevels=mosaicConfiguration.getLevelsNum();

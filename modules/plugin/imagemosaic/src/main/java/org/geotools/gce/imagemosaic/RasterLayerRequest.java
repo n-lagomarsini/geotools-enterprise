@@ -20,9 +20,7 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -75,13 +73,14 @@ import org.opengis.referencing.operation.TransformException;
  */
 @SuppressWarnings("rawtypes")
 class RasterLayerRequest {
+
 	/** Logger. */
     private final static Logger LOGGER = org.geotools.util.logging.Logging.getLogger(RasterLayerRequest.class);
 
     private ReadType readType = AbstractGridFormat.USE_JAI_IMAGEREAD.getDefaultValue()?ReadType.JAI_IMAGEREAD:ReadType.DIRECT_READ;
 
     /** The {@link BoundingBox} requested */
-    private BoundingBox requestedBBox;  
+    private BoundingBox requestedBBox;
     
     /** The {@link BoundingBox} of the portion of the coverage that intersects the requested bbox */
     private BoundingBox cropBBox;
@@ -126,9 +125,6 @@ class RasterLayerRequest {
 	private Color inputTransparentColor=AbstractGridFormat.INPUT_TRANSPARENT_COLOR.getDefaultValue();;
 
 	private boolean blend=ImageMosaicFormat.FADING.getDefaultValue();
-	
-	/** Specifies the behavior for the merging of the final mosaic.*/
-	private MergeBehavior mergeBehavior=MergeBehavior.getDefault();
 
 	private Color outputTransparentColor=ImageMosaicFormat.OUTPUT_TRANSPARENT_COLOR.getDefaultValue();;
 
@@ -164,8 +160,6 @@ class RasterLayerRequest {
 	private List<?> elevation;
 	
 	private Filter filter;
-	
-        private final Map<String,List> requestedAdditionalDomains = new HashMap<String,List>();
 
 	/** Sort clause on shapefile attributes.*/
 	private String sortClause;
@@ -212,10 +206,6 @@ class RasterLayerRequest {
 
     RasterManager getRasterManager() {
         return rasterManager;
-    }
-    
-    public Map<String, List> getRequestedAdditionalDomains() {
-        return new HashMap<String, List>(requestedAdditionalDomains);
     }
 
 	 
@@ -473,8 +463,7 @@ class RasterLayerRequest {
 	                    }
 	                }
 	            }
-	        }
-	        
+	        }	
     	}
 		
 	}
@@ -531,18 +520,6 @@ class RasterLayerRequest {
             return;
         }
 
-        // //
-        //
-        // Merge Behavior
-        //
-        // //
-        if (name.equals(ImageMosaicFormat.MERGE_BEHAVIOR.getName())) {
-            final Object value = param.getValue();
-            if(value==null)
-                return;
-            mergeBehavior = MergeBehavior.valueOf(param.stringValue().toUpperCase());
-            return;
-        }
 
         // //
         //
@@ -580,6 +557,7 @@ class RasterLayerRequest {
                 if(value==null)
                         return;
             interpolation = (Interpolation) value;
+//            interpolation = ((InterpolationType) value).getInstance();
             return;
         }
 
@@ -733,7 +711,7 @@ class RasterLayerRequest {
             return;
         }      
         
-        //
+        // //x
         //
         // Elevation parameter
         //
@@ -759,25 +737,6 @@ class RasterLayerRequest {
             return;
         }            
 
-        // //
-        //
-        // Additional dimension parameter check
-        //
-        // //
-        String paramName = name.getCode();
-        if (rasterManager.parent.isParameterSupported(name)) {
-            final Object value = param.getValue();
-            if (value == null){
-                return;
-            }
-            if (value instanceof List) {
-                List values = (List) value; // we are assuming it is a list !!!
-                // remove last comma
-                requestedAdditionalDomains.put(paramName, values);
-                               
-            }
-            return;
-        }
     }
 
     /**
@@ -1428,9 +1387,5 @@ class RasterLayerRequest {
 		builder.append("\tReadType=").append(readType);
 		return builder.toString();
 	}
-
-    public MergeBehavior getMergeBehavior() {
-        return mergeBehavior;
-    }
    
 }
