@@ -16,7 +16,7 @@
   <parent>
     <groupId>org.geotools</groupId>
     <artifactId>unsupported</artifactId>
-    <version>8-ENTERPRISE-SNAPSHOT</version>
+    <version>8-CIOK-SNAPSHOT</version>
   </parent>
   
 
@@ -27,7 +27,7 @@
   <artifactId>gt-efeature</artifactId>
   <packaging>jar</packaging>
   <name>EFeature DataStore Implementation</name>
-  <version>8-ENTERPRISE-SNAPSHOT</version>
+  <version>8-CIOK-SNAPSHOT</version>
   
   <description>
     The EFeature DataStore module adds support for spatial read and write operations to EMF models. 
