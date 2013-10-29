@@ -48,6 +48,7 @@
     <module>brewer</module>
     <module>graph</module>
     <module>validation</module>
+    <module>transform</module>
     <module>xsd</module>
     <module>wms</module>
   </modules>
