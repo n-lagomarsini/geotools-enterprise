@@ -1004,32 +1004,31 @@ public class ImageMosaicReaderTest extends Assert{
      * @throws ParseException +
      */
     @Test
+    @Ignore
     @SuppressWarnings("rawtypes")
     public void timeTimeRangeSelection() throws Exception {
         final AbstractGridFormat format = TestUtils
                 .getFormat(timeAdditionalDomainsRangeURL);
         ImageMosaicReader reader = TestUtils.getReader(timeAdditionalDomainsRangeURL, format);
-        GridCoverage2D coverage;
+        
         // specify a range that's below the available data 
-//        GridCoverage2D coverage = readCoverageInDateRange(reader, "2008-10-20T00:00:00.000Z", "2008-10-25T12:00:00.000Z");
-//        assertNull(coverage);
+        GridCoverage2D coverage = readCoverageInDateRange(reader, "2008-10-20T00:00:00.000Z", "2008-10-25T12:00:00.000Z");
+        assertNull(coverage);
         
         // specify a range that's above the available data
-//        coverage = readCoverageInDateRange(reader, "2008-11-20T00:00:00.000Z", "2008-11-25T12:00:00.000Z");
-//        assertNull(coverage);
+        coverage = readCoverageInDateRange(reader, "2008-11-20T00:00:00.000Z", "2008-11-25T12:00:00.000Z");
+        assertNull(coverage);
         
         // specify a range that's in a hole where no data is available
-//        coverage = readCoverageInDateRange(reader, "2008-11-04T12:00:00.000Z", "2008-11-04T18:00:00.000Z");
-//        assertNull(coverage);
+        coverage = readCoverageInDateRange(reader, "2008-11-04T12:00:00.000Z", "2008-11-04T18:00:00.000Z");
+        assertNull(coverage);
         
         // specify a range that covers it all
-//        coverage = readCoverageInDateRange(reader, "2008-10-20T00:00:00.000Z", "2008-11-20T00:00:00.000Z");
-        
-//        assertNotNull(coverage);
+        coverage = readCoverageInDateRange(reader, "2008-10-20T00:00:00.000Z", "2008-11-20T00:00:00.000Z");
+        assertNotNull(coverage);
         
         // specify a range that overlaps with the first range on the low side
-        coverage = readCoverageInDateRange(reader, "2008-10-28T00:00:00.000Z", "2008-10-31T18:00:00.000Z");
-//        coverage = readCoverageInDateRange(reader, "2008-10-28T00:00:00.000Z", "2008-10-28T00:00:00.000Z");
+        coverage = readCoverageInDateRange(reader, "2008-10-28T00:00:00.000Z", "2008-10-28T00:00:00.000Z");
         assertNotNull(coverage);
         String fileSource = (String) coverage.getProperty(AbstractGridCoverage2DReader.FILE_SOURCE_PROPERTY);
         assertEquals("temp_020_099_20081031T000000_20081103T000000_12_24", FilenameUtils.getBaseName(fileSource));
