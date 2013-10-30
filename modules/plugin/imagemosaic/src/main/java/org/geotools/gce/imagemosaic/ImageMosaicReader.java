@@ -56,13 +56,15 @@ import org.geotools.data.DataSourceException;
 import org.geotools.data.DataStoreFactorySpi;
 import org.geotools.data.DataUtilities;
 import org.geotools.factory.Hints;
-import org.geotools.gce.imagemosaic.ImageMosaicWalker.ExceptionEvent;
-import org.geotools.gce.imagemosaic.ImageMosaicWalker.FileProcessingEvent;
-import org.geotools.gce.imagemosaic.ImageMosaicWalker.ProcessingEvent;
+import org.geotools.gce.imagemosaic.ImageMosaicEventHandlers.ExceptionEvent;
+import org.geotools.gce.imagemosaic.ImageMosaicEventHandlers.FileProcessingEvent;
+import org.geotools.gce.imagemosaic.ImageMosaicEventHandlers.ProcessingEvent;
 import org.geotools.gce.imagemosaic.Utils.Prop;
 import org.geotools.gce.imagemosaic.catalog.CatalogConfigurationBean;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalog;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalogFactory;
+import org.geotools.gce.imagemosaic.catalog.MultiLevelROIProvider;
+import org.geotools.gce.imagemosaic.catalog.MultiLevelROIProviderFactory;
 import org.geotools.gce.imagemosaic.catalogbuilder.CatalogBuilderConfiguration;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.geometry.jts.ReferencedEnvelope;
@@ -120,7 +122,7 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
     Map<String, RasterManager> rasterManagers = new ConcurrentHashMap<String, RasterManager>();
 
     public RasterManager getRasterManager(String name) {
-          if(rasterManagers.containsKey(name)){
+          if(name != null && rasterManagers.containsKey(name)){
               return rasterManagers.get(name);
           }
           return null;
@@ -132,36 +134,36 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
     }
 
     /** Logger. */
-        private final static Logger LOGGER = org.geotools.util.logging.Logging.getLogger(ImageMosaicReader.class);
+	private final static Logger LOGGER = org.geotools.util.logging.Logging.getLogger(ImageMosaicReader.class);
 
-        /**
-         * The source {@link URL} pointing to the index shapefile for this
-         * {@link ImageMosaicReader}.
-         */
-        URL sourceURL;
+	/**
+	 * The source {@link URL} pointing to the index shapefile for this
+	 * {@link ImageMosaicReader}.
+	 */
+	URL sourceURL;
 
-        boolean expandMe;
-        
-        PathType pathType;
-        
-        ExecutorService multiThreadedLoader;
+	boolean expandMe;
+	
+	PathType pathType;
+	
+	ExecutorService multiThreadedLoader;
 
-        String locationAttributeName=Utils.DEFAULT_LOCATION_ATTRIBUTE;
+	String locationAttributeName=Utils.DEFAULT_LOCATION_ATTRIBUTE;
 
         int maxAllowedTiles=ImageMosaicFormat.MAX_ALLOWED_TILES.getDefaultValue();
 
-        /** The suggested SPI to avoid SPI lookup*/
-        ImageReaderSpi suggestedSPI;
-        
-        GranuleCatalog granuleCatalog;
+	/** The suggested SPI to avoid SPI lookup*/
+	ImageReaderSpi suggestedSPI;
+	
+	GranuleCatalog granuleCatalog;
 
-        boolean cachingIndex;
+	boolean cachingIndex;
 
-        boolean imposedBBox;
-        
-        boolean heterogeneousGranules;
+	boolean imposedBBox;
+	
+	boolean heterogeneousGranules;
 
-        String typeName;
+	String typeName;
 
     /**
      * Constructor.
@@ -324,14 +326,15 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
                 final Map<String, Serializable> params = Utils.createDataStoreParamsFromPropertiesFile(props, spi);
 
                 // Since we are dealing with a catalog from an existing store, make sure to scan for all the typeNames on initialization
-                final String typeNames=props.getProperty(Utils.SCAN_FOR_TYPENAMES);
-                if (typeNames!=null){
-                    params.put(Utils.SCAN_FOR_TYPENAMES, Boolean.getBoolean(typeNames));
+                params.put(Utils.SCAN_FOR_TYPENAMES, Boolean.valueOf(true));
+//                params.put(Utils.SCAN_FOR_TYPENAMES, typeNamesProps.getProperty(Utils.SCAN_FOR_TYPENAMES));
+                if (beans.size() > 0) {
+                    catalog = GranuleCatalogFactory.createGranuleCatalog(sourceURL, beans.get(0).getCatalogConfigurationBean(), params, getHints());
                 } else {
-                    params.put(Utils.SCAN_FOR_TYPENAMES, Boolean.TRUE);
-                }
-                
-                catalog = GranuleCatalogFactory.createGranuleCatalog(sourceURL, beans.get(0).getCatalogConfigurationBean(), params, getHints());
+                    catalog = CatalogManager.createGranuleCatalogFromDatastore(parent, datastoreProperties, true, getHints());
+                } 
+                MultiLevelROIProvider rois = MultiLevelROIProviderFactory.createFootprintProvider(parent);
+                catalog.setMultiScaleROIProvider(rois);
                 if (granuleCatalog == null) {
                     granuleCatalog = catalog;
                 }
@@ -349,6 +352,9 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
                 
                 // Old style code: we have a single MosaicConfigurationBean. Use that to create the catalog 
                 granuleCatalog = CatalogManager.createCatalog(sourceURL, configuration, this.hints);
+                File parent = DataUtilities.urlToFile(sourceURL).getParentFile();
+                MultiLevelROIProvider rois = MultiLevelROIProviderFactory.createFootprintProvider(parent);
+                granuleCatalog.setMultiScaleROIProvider(rois);
                 addRasterManager(configuration, true);
             }
         } catch (Throwable e) {
@@ -396,10 +402,10 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
         // we might have an imposed bbox
         this.crs=bounds.getCoordinateReferenceSystem();
         if(envelope==null)
-                this.originalEnvelope=new GeneralEnvelope(bounds);
+        	this.originalEnvelope=new GeneralEnvelope(bounds);
         else{
-                this.originalEnvelope=new GeneralEnvelope(envelope);
-                this.originalEnvelope.setCoordinateReferenceSystem(crs);
+        	this.originalEnvelope=new GeneralEnvelope(envelope);
+        	this.originalEnvelope.setCoordinateReferenceSystem(crs);
         }
         
         // original gridrange (estimated). I am using the floor here in order to make sure
@@ -417,186 +423,186 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
                 -highestRes[1], 
                 originalEnvelope.getLowerCorner().getOrdinate(0)+0.5*highestRes[0], 
                 originalEnvelope.getUpperCorner().getOrdinate(1)-0.5*highestRes[1]);   
-                
-        }
+		
+	}
 
-        private void setGridGeometry (final String typeName) {
-            setGridGeometry(null, granuleCatalog, typeName); 
+	private void setGridGeometry (final String typeName) {
+	    setGridGeometry(null, granuleCatalog, typeName); 
     }
-        private void extractProperties(final MosaicConfigurationBean configuration) throws IOException {
+	private void extractProperties(final MosaicConfigurationBean configuration) throws IOException {
 
-                // resolutions levels
-                numOverviews = configuration.getLevelsNum() - 1;
-                final double[][] resolutions = configuration.getLevels();
-                overViewResolutions = numOverviews >= 1 ? new double[numOverviews][2]: null;
-                highestRes = new double[2];
-                highestRes[0] = resolutions[0][0];
-                highestRes[1] = resolutions[0][1];
+		// resolutions levels
+		numOverviews = configuration.getLevelsNum() - 1;
+		final double[][] resolutions = configuration.getLevels();
+		overViewResolutions = numOverviews >= 1 ? new double[numOverviews][2]: null;
+		highestRes = new double[2];
+		highestRes[0] = resolutions[0][0];
+		highestRes[1] = resolutions[0][1];
 
-                if (LOGGER.isLoggable(Level.FINE))
-                        LOGGER.fine(new StringBuilder("Highest res ").append(highestRes[0])
-                                        .append(" ").append(highestRes[1]).toString());
+		if (LOGGER.isLoggable(Level.FINE))
+			LOGGER.fine(new StringBuilder("Highest res ").append(highestRes[0])
+					.append(" ").append(highestRes[1]).toString());
 
-                if (numOverviews > 0){
-                        for (int i = 0; i < numOverviews; i++) {                        
-                                overViewResolutions[i][0] = resolutions[i+1][0];
-                                overViewResolutions[i][1] = resolutions[i+1][1];
-                        }       
-                }
-        
-                // name
-                coverageName = configuration.getName();
+		if (numOverviews > 0){
+	   		for (int i = 0; i < numOverviews; i++) {     			
+				overViewResolutions[i][0] = resolutions[i+1][0];
+				overViewResolutions[i][1] = resolutions[i+1][1];
+	   		}	
+		}
+	
+		// name
+		coverageName = configuration.getName();
 
-                // need a color expansion?
-                // this is a newly added property we have to be ready to the case where
-                // we do not find it.
-                expandMe = configuration.isExpandToRGB();
-                
-                CatalogConfigurationBean catalogConfigurationBean = configuration.getCatalogConfigurationBean();
-                
-                // do we have heterogenous granules
-                heterogeneousGranules = catalogConfigurationBean.isHeterogeneous();
+		// need a color expansion?
+		// this is a newly added property we have to be ready to the case where
+		// we do not find it.
+		expandMe = configuration.isExpandToRGB();
+		
+		CatalogConfigurationBean catalogConfigurationBean = configuration.getCatalogConfigurationBean();
+		
+		// do we have heterogenous granules
+		heterogeneousGranules = catalogConfigurationBean.isHeterogeneous();
 
-                // absolute or relative path
-                pathType = catalogConfigurationBean.isAbsolutePath()?PathType.ABSOLUTE:PathType.RELATIVE;
-                
-                //
-                // location attribute
-                //
-                locationAttributeName = catalogConfigurationBean.getLocationAttribute();
-                
-                // suggested SPI
-                final String suggestedSPIClass = catalogConfigurationBean.getSuggestedSPI();
-                if (suggestedSPIClass != null){
-                        try {
-                                final Class<?> clazz=Class.forName(suggestedSPIClass);
-                                if(clazz.newInstance() instanceof ImageReaderSpi)
-                                        suggestedSPI=(ImageReaderSpi)clazz.newInstance();
-                                else
-                                        suggestedSPI=null;
-                        } catch (Exception e) {
-                                if(LOGGER.isLoggable(Level.FINE))
-                                        LOGGER.log(Level.FINE,e.getLocalizedMessage(),e);
-                                suggestedSPI=null;
-                        } 
-                }
+		// absolute or relative path
+		pathType = catalogConfigurationBean.isAbsolutePath()?PathType.ABSOLUTE:PathType.RELATIVE;
+		
+		//
+		// location attribute
+		//
+		locationAttributeName = catalogConfigurationBean.getLocationAttribute();
+		
+		// suggested SPI
+		final String suggestedSPIClass = catalogConfigurationBean.getSuggestedSPI();
+		if (suggestedSPIClass != null){
+			try {
+				final Class<?> clazz=Class.forName(suggestedSPIClass);
+				if(clazz.newInstance() instanceof ImageReaderSpi)
+					suggestedSPI=(ImageReaderSpi)clazz.newInstance();
+				else
+					suggestedSPI=null;
+			} catch (Exception e) {
+				if(LOGGER.isLoggable(Level.FINE))
+					LOGGER.log(Level.FINE,e.getLocalizedMessage(),e);
+				suggestedSPI=null;
+			} 
+		}
 
-                // caching for the index
-                cachingIndex = catalogConfigurationBean.isCaching();
-                
-                // imposed BBOX
+		// caching for the index
+		cachingIndex = catalogConfigurationBean.isCaching();
+		
+		// imposed BBOX
                 if(configuration.getEnvelope()!=null){
-                        this.imposedBBox=true;
-                        // we set the BBOX later to retain also the CRS
+            		this.imposedBBox=true;
+            		// we set the BBOX later to retain also the CRS
                 } else {
-                        this.imposedBBox=false;
+                	this.imposedBBox=false;
                 }
-                
-                // typeName to be used for reading the mosaic
-                this.typeName = catalogConfigurationBean.getTypeName();
+		
+		// typeName to be used for reading the mosaic
+		this.typeName = catalogConfigurationBean.getTypeName();
 
-        }
+	}
 
-        /**
-         * Constructor.
-         * 
-         * @param source
-         *            The source object.
-         * @throws IOException
-         * @throws UnsupportedEncodingException
-         * 
-         */
-        public ImageMosaicReader(Object source) throws IOException {
-                this(source, null);
+	/**
+	 * Constructor.
+	 * 
+	 * @param source
+	 *            The source object.
+	 * @throws IOException
+	 * @throws UnsupportedEncodingException
+	 * 
+	 */
+	public ImageMosaicReader(Object source) throws IOException {
+		this(source, null);
 
-        }
+	}
 
-        /**
-         * 
-         * @see org.opengis.coverage.grid.GridCoverageReader#getFormat()
-         */
-        public Format getFormat() {
-                return new ImageMosaicFormat();
-        }
+	/**
+	 * 
+	 * @see org.opengis.coverage.grid.GridCoverageReader#getFormat()
+	 */
+	public Format getFormat() {
+		return new ImageMosaicFormat();
+	}
 
     public GridCoverage2D read(GeneralParameterValue[] params) throws IOException {
-             return read (UNSPECIFIED, params); 
-        }
+	     return read (UNSPECIFIED, params); 
+	}
 
-        /**
-         * 
-         * @see org.opengis.coverage.grid.GridCoverageReader#read(org.opengis.parameter.GeneralParameterValue[])
-         * @Override
-         */
-        public GridCoverage2D read(String coverageName, GeneralParameterValue[] params) throws IOException {
-           
-            // check if we were disposed already
-            if(rasterManagers == null){
-                throw new IOException("Looks like this reader has been already disposed or it has not been properly initialized.");
-            }
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    if (sourceURL != null) {
-                        LOGGER.fine("Reading mosaic from " + sourceURL.toString());
-                    } else {
-                        LOGGER.fine("Reading mosaic");
-                    }
-                    final double[][] levels = getResolutionLevels(coverageName);
-                    if (levels != null) {
-                        final double[] highRes = levels[0];
-                        LOGGER.fine("Highest res "+ highRes[0] + " " + highRes[1]);
-                    }
-                    
-                }
-                //
-                // add max allowed tiles if missing
-                //
-                if(this.maxAllowedTiles!=ImageMosaicFormat.MAX_ALLOWED_TILES.getDefaultValue()){
-                        if(params!=null){
-                                // first thing let's see if we have it already, in which case we do nothing since a read parameter override a Hint
-                                boolean found=false;
-                                for(GeneralParameterValue pv:params)
-                                {
-                                        if(pv.getDescriptor().getName().equals(ImageMosaicFormat.MAX_ALLOWED_TILES.getName()))
-                                        {
-                                                found=true;
-                                                break;
-                                        }
-                                }
-                                
-                                //ok, we did not find it, let's add it back 
-                                if(!found)
-                                {
-                                        final GeneralParameterValue[] temp = new GeneralParameterValue[params.length+1];
-                                        System.arraycopy(params, 0, temp, 0, params.length);
-                                        ParameterValue<Integer> tempVal = ImageMosaicFormat.MAX_ALLOWED_TILES.createValue();
-                                        tempVal.setValue(this.maxAllowedTiles);
-                                        temp[params.length]=tempVal;
-                                }
-                        }
-                        else
-                        {
-                                // we do not have nay read params, we have to create the array for them
-                                ParameterValue<Integer> tempVal = ImageMosaicFormat.MAX_ALLOWED_TILES.createValue();
-                                tempVal.setValue(this.maxAllowedTiles);
-                                params= new GeneralParameterValue[]{tempVal};
-                        }
-                                
-                }
-                
-                //
-                // Loading tiles trying to optimize as much as possible
-                //
-                final Collection<GridCoverage2D> response = read(params, coverageName);
-                if (response.isEmpty()) {
-                    if (LOGGER.isLoggable(Level.FINE)){
-                        LOGGER.fine("The response is empty. ==> returning a null GridCoverage");
-                    }
-                    return null;
-                } else {
-                        return response.iterator().next();
-                }
-        }
-        
+	/**
+	 * 
+	 * @see org.opengis.coverage.grid.GridCoverageReader#read(org.opengis.parameter.GeneralParameterValue[])
+	 * @Override
+	 */
+	public GridCoverage2D read(String coverageName, GeneralParameterValue[] params) throws IOException {
+	   
+	    // check if we were disposed already
+	    if(rasterManagers == null){
+	        throw new IOException("Looks like this reader has been already disposed or it has not been properly initialized.");
+	    }
+		if (LOGGER.isLoggable(Level.FINE)) {
+    		    if (sourceURL != null) {
+    			LOGGER.fine("Reading mosaic from " + sourceURL.toString());
+    		    } else {
+    		        LOGGER.fine("Reading mosaic");
+    		    }
+    		    final double[][] levels = getResolutionLevels(coverageName);
+    		    if (levels != null) {
+    		        final double[] highRes = levels[0];
+    		        LOGGER.fine("Highest res "+ highRes[0] + " " + highRes[1]);
+    		    }
+		    
+		}
+		//
+		// add max allowed tiles if missing
+		//
+		if(this.maxAllowedTiles!=ImageMosaicFormat.MAX_ALLOWED_TILES.getDefaultValue()){
+			if(params!=null){
+				// first thing let's see if we have it already, in which case we do nothing since a read parameter override a Hint
+				boolean found=false;
+				for(GeneralParameterValue pv:params)
+				{
+					if(pv.getDescriptor().getName().equals(ImageMosaicFormat.MAX_ALLOWED_TILES.getName()))
+					{
+						found=true;
+						break;
+					}
+				}
+				
+				//ok, we did not find it, let's add it back 
+				if(!found)
+				{
+					final GeneralParameterValue[] temp = new GeneralParameterValue[params.length+1];
+					System.arraycopy(params, 0, temp, 0, params.length);
+					ParameterValue<Integer> tempVal = ImageMosaicFormat.MAX_ALLOWED_TILES.createValue();
+					tempVal.setValue(this.maxAllowedTiles);
+					temp[params.length]=tempVal;
+				}
+			}
+			else
+			{
+				// we do not have nay read params, we have to create the array for them
+				ParameterValue<Integer> tempVal = ImageMosaicFormat.MAX_ALLOWED_TILES.createValue();
+				tempVal.setValue(this.maxAllowedTiles);
+				params= new GeneralParameterValue[]{tempVal};
+			}
+				
+		}
+		
+		//
+		// Loading tiles trying to optimize as much as possible
+		//
+		final Collection<GridCoverage2D> response = read(params, coverageName);
+		if (response.isEmpty()) {
+		    if (LOGGER.isLoggable(Level.FINE)){
+		        LOGGER.fine("The response is empty. ==> returning a null GridCoverage");
+		    }
+		    return null;
+		} else {
+			return response.iterator().next();
+		}
+	}
+	
     /**
      * Look for the parameter containing the coverage name and check its validity. Then delegate the proper RasterManager to do the read operation.
      * 
@@ -610,36 +616,36 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
         return getRasterManager(coverageName).read(params);
     }
 
-        /**
-         * Package private accessor for {@link Hints}.
-         * 
-         * @return this {@link Hints} used by this reader.
-         */
-        Hints getHints(){
-                return super.hints;
-        }
-        
-        /**
-         * Package private accessor for the highest resolution values.
-         * 
-         * @return the highest resolution values.
-         */
-        double[] getHighestRes(){
-                return super.highestRes;
-        }
-        
-        /**
-         * 
-         * @return
-         */
-        double[][] getOverviewsResolution(){
-                return super.overViewResolutions;
-        }
-        
-        int getNumberOfOvervies(){
-                return super.numOverviews;
-        }
-        
+	/**
+	 * Package private accessor for {@link Hints}.
+	 * 
+	 * @return this {@link Hints} used by this reader.
+	 */
+	Hints getHints(){
+		return super.hints;
+	}
+	
+	/**
+	 * Package private accessor for the highest resolution values.
+	 * 
+	 * @return the highest resolution values.
+	 */
+	double[] getHighestRes(){
+		return super.highestRes;
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	double[][] getOverviewsResolution(){
+		return super.overViewResolutions;
+	}
+	
+	int getNumberOfOvervies(){
+		return super.numOverviews;
+	}
+	
 
     /** Package scope grid to world transformation accessor */
     MathTransform getRaster2Model() {
@@ -650,10 +656,10 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
      * Let us retrieve the {@link GridCoverageFactory} that we want to use.
      * 
      * @return
-     *                  retrieves the {@link GridCoverageFactory} that we want to use.
+     * 			retrieves the {@link GridCoverageFactory} that we want to use.
      */
     GridCoverageFactory getGridCoverageFactory(){
-        return coverageFactory;
+    	return coverageFactory;
     }
 
     /**
@@ -713,7 +719,7 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
     public String[] getMetadataNames(String coverageName) {
         String name = checkUnspecifiedCoverage(coverageName);
         RasterManager manager = getRasterManager(name);
-        return manager.getMetadataNames();
+        return manager != null ? manager.getMetadataNames() : null;
     }
 
     @Override
@@ -798,7 +804,7 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
             defaultName = name;
         }
         if (init) {
-            rasterManager.initialize();
+            rasterManager.initialize(false);
         }
         return rasterManager;
     }
@@ -941,7 +947,8 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
         String indexingPath = directory.getAbsolutePath();
         configuration.setParameter(Prop.HARVEST_DIRECTORY, indexingPath);
         if(defaultCoverage == null) {
-            defaultCoverage = getGridCoverageNames()[0];
+            String[] coverageNames = getGridCoverageNames();
+            defaultCoverage = (coverageNames != null && coverageNames.length > 0) ? coverageNames[0] : Utils.DEFAULT_INDEX_NAME;
         } 
         configuration.setParameter(Prop.INDEX_NAME, defaultCoverage);
         configuration.setHints(new Hints(Utils.MOSAIC_READER, this));
@@ -954,9 +961,12 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
         configuration.setParameter(Prop.ROOT_MOSAIC_DIR, mosaicSource.getAbsolutePath());
         
         // run the walker and collect information
-        ImageMosaicWalker walker = new ImageMosaicWalker(configuration);
-        walker.setFileFilter(filter);
-        walker.addProcessingEventListener(new ImageMosaicWalker.ProcessingEventListener() {
+        ImageMosaicEventHandlers eventHandler = new ImageMosaicEventHandlers();
+        final ImageMosaicConfigHandler catalogHandler = new ImageMosaicConfigHandler(configuration,
+                eventHandler);
+        // build the index
+        ImageMosaicDirectoryWalker walker = new ImageMosaicDirectoryWalker(catalogHandler, eventHandler,filter);
+        eventHandler.addProcessingEventListener(new ImageMosaicEventHandlers.ProcessingEventListener() {
             
             @Override
             public void getNotification(ProcessingEvent event) {

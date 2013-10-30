@@ -87,8 +87,6 @@ import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.factory.Hints;
 import org.geotools.factory.Hints.Key;
 import org.geotools.filter.visitor.DefaultFilterVisitor;
-import org.geotools.gce.imagemosaic.ImageMosaicWalker.ExceptionEvent;
-import org.geotools.gce.imagemosaic.ImageMosaicWalker.ProcessingEvent;
 import org.geotools.gce.imagemosaic.catalog.CatalogConfigurationBean;
 import org.geotools.gce.imagemosaic.catalog.index.Indexer;
 import org.geotools.gce.imagemosaic.catalog.index.IndexerUtils;
@@ -191,12 +189,19 @@ public class Utils {
         public static final String TIME_ATTRIBUTE = "TimeAttribute";
         public static final String ELEVATION_ATTRIBUTE = "ElevationAttribute";
         public static final String ADDITIONAL_DOMAIN_ATTRIBUTES = "AdditionalDomainAttributes";
+
+        /**
+         * Sets if the target schema should be used to locate granules (default is FALSE)<br/>
+         * {@value TRUE|FALSE}
+         */
+        public final static String USE_EXISTING_SCHEMA = "UseExistingSchema"; 
         public final static String TYPENAME = "TypeName";
         public final static String PATH_TYPE = "PathType";
         public final static String PARENT_LOCATION = "ParentLocation";
         public final static String ROOT_MOSAIC_DIR = "RootMosaicDirectory";
         public final static String INDEXING_DIRECTORIES = "IndexingDirectories";
         public final static String HARVEST_DIRECTORY = "HarvestingDirectory";
+        public final static String CAN_BE_EMPTY = "CanBeEmpty";
         
         //Indexer Properties specific properties
         public  static final String RECURSIVE = "Recursive";
@@ -221,8 +226,9 @@ public class Utils {
     		return bbox;
     	}
     	private ReferencedEnvelope bbox;
-    	@Override
-    	public Object visit(BBOX filter, Object data) {
+
+        @Override
+        public Object visit(BBOX filter, Object data) {
             final ReferencedEnvelope bbox = new ReferencedEnvelope(filter.getMinX(),
                     filter.getMaxX(), filter.getMinY(), filter.getMaxY(), null);
 
@@ -231,9 +237,10 @@ public class Utils {
             } else {
                 this.bbox = bbox;
             }
+
             return super.visit(filter, data);
-    	}
-    	
+        }
+
     }
 
 	/**
@@ -288,17 +295,26 @@ public class Utils {
                IndexerUtils.setParam(parameterList, Prop.WILDCARD, wildcard);
                IndexerUtils.setParam(parameterList, Prop.INDEXING_DIRECTORIES, location);
 
-		// create the builder
-		final ImageMosaicWalker catalogBuilder = new ImageMosaicWalker(configuration);
-		
+        // create the builder
+        // final ImageMosaicWalker catalogBuilder = new ImageMosaicWalker(configuration);
+        final ImageMosaicEventHandlers eventHandler = new ImageMosaicEventHandlers();
+        final ImageMosaicConfigHandler catalogHandler = new ImageMosaicConfigHandler(configuration,
+                eventHandler);
+        final ImageMosaicWalker walker;
+        if (catalogHandler.isUseExistingSchema()) {
+            walker = new ImageMosaicDatastoreWalker(catalogHandler, eventHandler);
+        } else {
+            walker = new ImageMosaicDirectoryWalker(catalogHandler, eventHandler);
+        }
+
 		// this is going to help us with catching exceptions and logging them
 		final Queue<Throwable> exceptions = new LinkedList<Throwable>();
 		try {
 
-			final ImageMosaicWalker.ProcessingEventListener listener = new ImageMosaicWalker.ProcessingEventListener() {
+			final ImageMosaicEventHandlers.ProcessingEventListener listener = new ImageMosaicEventHandlers.ProcessingEventListener() {
 
 				@Override
-				public void exceptionOccurred(ExceptionEvent event) {
+				public void exceptionOccurred(ImageMosaicEventHandlers.ExceptionEvent event) {
 					final Throwable t = event.getException();
 					exceptions.add(t);
 					if (LOGGER.isLoggable(Level.SEVERE))
@@ -307,20 +323,20 @@ public class Utils {
 				}
 
 				@Override
-				public void getNotification(ProcessingEvent event) {
+				public void getNotification(ImageMosaicEventHandlers.ProcessingEvent event) {
 					if (LOGGER.isLoggable(Level.FINE))
 						LOGGER.fine(event.getMessage());
 
 				}
 
 			};
-			catalogBuilder.addProcessingEventListener(listener);
-			catalogBuilder.run();
+			eventHandler.addProcessingEventListener(listener);
+			walker.run();
 		} catch (Throwable e) {
 			LOGGER.log(Level.SEVERE, "Unable to build mosaic", e);
 			return false;
 		} finally {
-			catalogBuilder.dispose();
+			catalogHandler.dispose();
 		}
 
 		// check that nothing bad happened
@@ -964,7 +980,7 @@ public class Utils {
 	 */
 	static final Color TRANSPARENT = new Color(0,0,0,0);
         
-	final static Boolean IGNORE_FOOTPRINT = Boolean.getBoolean("org.geotools.footprint.ignore");
+	// final static Boolean IGNORE_FOOTPRINT = Boolean.getBoolean("org.geotools.footprint.ignore");
 	
     public static final boolean DEFAULT_FOOTPRINT_MANAGEMENT = true;
 	
@@ -1049,6 +1065,7 @@ public class Utils {
                         // TODO: Refactor these checks once we integrate datastore on indexer.xml
                         //
                         File dataStoreProperties = new File(locationPath,"datastore.properties");
+//                        File emptyFile = new File(locationPath,"empty");
 
                         // this can be used to look for properties files that do NOT
                         // define a datastore
@@ -1147,10 +1164,7 @@ public class Utils {
                                                 defaultIndexName + ".properties");
                                 if (!Utils.checkFileReadable(propertiesFile)) {
                                         // retrieve a null so that we shows that a problem occurred
-                                        final File mosaicFile = new File(locationPath,
-                                                defaultIndexName + ".xml");
-                                        
-                                        if (!Utils.checkFileReadable(mosaicFile)) {
+                                        if (!checkMosaicHasBeenInitialized(locationPath, defaultIndexName)) {
                                             sourceURL = null;
                                             return sourceURL;
                                         }
@@ -1158,26 +1172,8 @@ public class Utils {
 
                                 // check that the shapefile was correctly created in case it
                                 // was needed
-                                if (!datastoreFound) {
-                                        shapeFile = new File(locationPath, defaultIndexName+ ".shp");
-
-                                        if (!Utils.checkFileReadable(shapeFile))
-                                                sourceURL = null;
-                                        else
-                                                // now set the new source and proceed
-                                                sourceURL = DataUtilities.fileToURL(shapeFile);
-                                } else {
-                                        dataStoreProperties = new File(locationPath,"datastore.properties");
-
-                                        // datastore.properties as the source
-                                        if (!Utils.checkFileReadable(dataStoreProperties)){
-                                            sourceURL = null;
-                                        }
-                                        else {
-                                            sourceURL = DataUtilities.fileToURL(dataStoreProperties);
-                                        }
-                                }
-
+                                sourceURL = updateSourceURL(sourceURL, datastoreFound, locationPath, defaultIndexName/*, emptyFile*/);
+                                
                         } else
                                 // now set the new source and proceed
                                 sourceURL = datastoreFound ? DataUtilities.fileToURL(dataStoreProperties) : DataUtilities.fileToURL(shapeFile); 
@@ -1191,6 +1187,60 @@ public class Utils {
         return sourceURL;
     }
     
+
+    /**
+     * Look for a proper sourceURL to be returned.
+     * 
+     * @param sourceURL
+     * @param datastoreFound 
+     * @param locationPath
+     * @param defaultIndexName
+     * @param emptyFile
+     * @return
+     */
+    private static URL updateSourceURL(URL sourceURL, boolean datastoreFound, String locationPath, String defaultIndexName/*,
+            File emptyFile*/) {
+        if (!datastoreFound) {
+            File shapeFile = new File(locationPath, defaultIndexName + ".shp");
+
+            if (!Utils.checkFileReadable(shapeFile)) {
+//                if (!Utils.checkFileReadable(emptyFile)) {
+                    sourceURL = null;
+//                } else {
+//                    sourceURL = DataUtilities.fileToURL(emptyFile);
+//                }
+            } else {
+                // now set the new source and proceed
+                sourceURL = DataUtilities.fileToURL(shapeFile);
+            }
+        } else {
+                File dataStoreProperties = new File(locationPath,"datastore.properties");
+
+                // datastore.properties as the source
+                if (!Utils.checkFileReadable(dataStoreProperties)){
+                    sourceURL = null;
+                }
+                else {
+                    sourceURL = DataUtilities.fileToURL(dataStoreProperties);
+                }
+        }
+
+       
+        return sourceURL;
+    }
+
+    private static boolean checkMosaicHasBeenInitialized(String locationPath, String defaultIndexName) {
+        File mosaicFile = new File(locationPath, defaultIndexName + ".xml");
+        if (Utils.checkFileReadable(mosaicFile)) {
+            return true;
+        }
+        mosaicFile = new File(locationPath, defaultIndexName + ".properties");
+        if (Utils.checkFileReadable(mosaicFile)) {
+            return true;
+        }
+        
+        return false;
+    }
 
     static final double SAMEBBOX_THRESHOLD_FACTOR = 20;
 
@@ -1291,7 +1341,7 @@ public class Utils {
          * Check if the provided granule's footprint covers the same area of the granule's bbox.
          * @param granuleFootprint the granule Footprint
          * @param granuleBBOX the granule bbox
-         * @return {@code true} in case the footprint isn't covering the full granule's bbox. 
+         * @return {@code true} in case the footprint isn't covering the FULL granule's bbox. 
          */
         static boolean areaIsDifferent(
                 final Geometry granuleFootprint,
