@@ -806,6 +806,9 @@ public class ImageMosaicConfigHandler {
 
             catalogConfigurationBean.setLocationAttribute(IndexerUtils.getParameter(
                     Prop.LOCATION_ATTRIBUTE, indexer));
+            
+            catalogConfigurationBean.setTypeName(coverageName);
+            
             configBuilder.setCatalogConfigurationBean(catalogConfigurationBean);
 
             currentConfigurationBean = configBuilder.getMosaicConfigurationBean();
@@ -819,10 +822,8 @@ public class ImageMosaicConfigHandler {
                 SimpleFeatureType indexSchema = CatalogManager.createSchema(getRunConfiguration(),
                         currentConfigurationBean.getName(), actualCRS);
                 getParentReader().createCoverage(coverageName, indexSchema);
-            } else {
-                // RasterManager manager = parentReader.getRasterManager(coverageName);
-                // manager.typeName = coverageName;
-                rasterManager.typeName = coverageName;
+//            } else {
+//                rasterManager.typeName = coverageName;
             }
             getConfigurations().put(currentConfigurationBean.getName(), currentConfigurationBean);
 
