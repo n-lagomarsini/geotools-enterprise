@@ -550,6 +550,9 @@ public class ImageMosaicConfigHandler {
         if (props.containsKey(Prop.INDEXING_DIRECTORIES)) {
             IndexerUtils.setParam(params.getParameter(), props, Prop.INDEXING_DIRECTORIES);
         }
+        if (props.containsKey(Prop.AUXILIARY_FILE)) {
+            IndexerUtils.setParam(params.getParameter(), props, Prop.AUXILIARY_FILE);
+        }
         if (props.containsKey(Prop.CAN_BE_EMPTY)) {
             IndexerUtils.setParam(params.getParameter(), props, Prop.CAN_BE_EMPTY);
         }
