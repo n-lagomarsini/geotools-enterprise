@@ -32,7 +32,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
@@ -44,8 +46,14 @@ import org.apache.commons.io.IOUtils;
 import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.coverage.grid.GridGeometry2D;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
+import org.geotools.data.DataStore;
 import org.geotools.data.Query;
+import org.geotools.data.postgis.PostgisNGDataStoreFactory;
 import org.geotools.factory.Hints;
+import org.geotools.feature.NameImpl;
+import org.geotools.feature.simple.SimpleFeatureTypeImpl;
+import org.geotools.feature.type.AttributeDescriptorImpl;
+import org.geotools.feature.type.AttributeTypeImpl;
 import org.geotools.filter.SortByImpl;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalogVisitor;
 import org.geotools.geometry.GeneralEnvelope;
@@ -57,6 +65,7 @@ import org.geotools.util.logging.Logging;
 import org.junit.Test;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
+import org.opengis.feature.type.AttributeDescriptor;
 import org.opengis.filter.sort.SortBy;
 import org.opengis.filter.sort.SortOrder;
 import org.opengis.parameter.GeneralParameterValue;
@@ -119,6 +128,85 @@ public class ImageMosaicPostgisIndexTest extends OnlineTestCase {
 	protected String getFixtureId() {
 		return "postgis_datastore";
 	}
+
+	// name of a table without geometry
+	private final String noGeom="noGeom";
+	
+    @Test
+    // @Ignore
+    public void testTypeNames() throws Exception {
+
+        final File workDir = new File(TestData.file(this, "."), tempFolderName1);
+        assertTrue(workDir.mkdir());
+        FileUtils
+                .copyFile(TestData.file(this, "watertemp.zip"), new File(workDir, "watertemp.zip"));
+        TestData.unzipFile(this, tempFolderName1 + "/watertemp.zip");
+
+        final URL timeElevURL = TestData.url(this, tempFolderName1);
+
+        final File datastoreProperties = new File(TestData.file(this, "."), tempFolderName1
+                + "/datastore.properties");
+        final Map<String, String> params = new HashMap<String, String>();
+        final Properties p = new Properties();
+        FileWriter out = null;
+        try {
+            out = new FileWriter(datastoreProperties);
+            final Set<Object> keyset = fixture.keySet();
+            for (Object key : keyset) {
+                final String key_ = (String) key;
+                final String value = fixture.getProperty(key_);
+                if (!key_.equalsIgnoreCase(Utils.SCAN_FOR_TYPENAMES)) {
+                    params.put(key_, value);
+                    p.put(key_, value);
+                }
+            }
+            p.store(out, "");
+        } finally {
+            IOUtils.closeQuietly(out);
+        }
+
+        // create a new schema without geometries to simulate failure on scanning all the typeNames
+        DataStore ds = null;
+        try {
+            ds = new PostgisNGDataStoreFactory().createDataStore(params);
+            final List<AttributeDescriptor> schema = new ArrayList<AttributeDescriptor>();
+            schema.add(new AttributeDescriptorImpl(new AttributeTypeImpl(new NameImpl("name"),
+                    String.class, false, false, null, null, null), new NameImpl("name"), 0, 0,
+                    true, ""));
+            SimpleFeatureType featureType = new SimpleFeatureTypeImpl(new NameImpl(noGeom), schema,
+                    null, false, null, null, null);
+            ds.createSchema(featureType);
+
+        } finally {
+            if (ds != null) {
+                ds.dispose();
+
+            }
+
+        }
+
+        // now start the test (may fails since some schema does not contains geometries and Utils.SCAN_FOR_TYPENAMES is not specified)
+        AbstractGridFormat format = TestUtils.getFormat(timeElevURL);
+        assertNotNull(format);
+        ImageMosaicReader reader = TestUtils.getReader(timeElevURL, format, null, false);
+        assertNull(reader);
+
+        // now add Utils.SCAN_FOR_TYPENAMES==true to the datastore.properties
+        try {
+            out = new FileWriter(datastoreProperties);
+            p.put(Utils.SCAN_FOR_TYPENAMES, "true");
+            p.store(out, "");
+        } finally {
+            IOUtils.closeQuietly(out);
+        }
+
+        // now start the test (may have success)
+        format = TestUtils.getFormat(timeElevURL);
+        assertNotNull(format);
+        reader = TestUtils.getReader(timeElevURL, format);
+        assertNotNull(reader);
+
+    }
 	
 	/**
 	 * Complex test for Postgis indexing on db.
@@ -369,6 +457,7 @@ public class ImageMosaicPostgisIndexTest extends OnlineTestCase {
             st = connection.createStatement();
             st.execute("DROP TABLE IF EXISTS \"" + tempFolderName1+"\"");
             st.execute("DROP TABLE IF EXISTS \"" + tempFolderName2+"\"");
+            st.execute("DROP TABLE IF EXISTS \"" + noGeom + "\"");
         } finally {
 
             if(st!=null){
