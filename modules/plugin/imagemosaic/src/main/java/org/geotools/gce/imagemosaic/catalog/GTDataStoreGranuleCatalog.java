@@ -21,6 +21,7 @@ import java.io.Serializable;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
@@ -105,7 +106,7 @@ class GTDataStoreGranuleCatalog extends GranuleCatalog {
 
     boolean heterogeneous;
 
-    public GTDataStoreGranuleCatalog(final Map<String, Serializable> params, final boolean create,
+    public GTDataStoreGranuleCatalog(final Properties params, final boolean create,
             final DataStoreFactorySpi spi, final Hints hints) {
         super(hints);
         Utilities.ensureNonNull("params", params);
@@ -123,22 +124,24 @@ class GTDataStoreGranuleCatalog extends GranuleCatalog {
                 this.heterogeneous = ((Boolean) heterogen).booleanValue();
             }
 
-            // H2 workadound
-            if (Utils.isH2Store(spi)) {
-                Utils.fixH2DatabaseLocation(params, parentLocation);
-            }
-
             // creating a store, this might imply creating it for an existing underlying store or
             // creating a brand new one
-            if (!create)
-                tileIndexStore = spi.createDataStore(params);
-            else {
+            Map<String, Serializable> dastastoreParams = Utils.filterDataStoreParams(params, spi);
+
+            // H2 workadound
+            if (Utils.isH2Store(spi)) {
+                Utils.fixH2DatabaseLocation(dastastoreParams, parentLocation);
+            }
+
+            if (!create) {
+                tileIndexStore = spi.createDataStore(dastastoreParams);
+            } else {
                 // this works only with the shapefile datastore, not with the others
                 // therefore I try to catch the error to try and use themethdo without *New*
                 try {
-                    tileIndexStore = spi.createNewDataStore(params);
+                    tileIndexStore = spi.createNewDataStore(dastastoreParams);
                 } catch (UnsupportedOperationException e) {
-                    tileIndexStore = spi.createDataStore(params);
+                    tileIndexStore = spi.createDataStore(dastastoreParams);
                 }
             }
 
