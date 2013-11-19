@@ -119,9 +119,8 @@ class GTDataStoreGranuleCatalog extends GranuleCatalog {
             this.suggestedRasterSPI = temp != null ? (ImageReaderSpi) Class.forName(temp)
                     .newInstance() : null;
             this.parentLocation = (String) params.get("ParentLocation");
-            Object heterogen = params.get("Heterogeneous");
-            if (heterogen != null) {
-                this.heterogeneous = ((Boolean) heterogen).booleanValue();
+            if (params.containsKey("Heterogeneous")) {
+                this.heterogeneous = Boolean.valueOf(params.getProperty("Heterogeneous"));
             }
 
             // creating a store, this might imply creating it for an existing underlying store or
@@ -163,7 +162,7 @@ class GTDataStoreGranuleCatalog extends GranuleCatalog {
             }
 
             if (params.containsKey(Utils.SCAN_FOR_TYPENAMES)) {
-                scanForTypeNames = (Boolean) params.get(Utils.SCAN_FOR_TYPENAMES);
+                scanForTypeNames = Boolean.valueOf(params.getProperty(Utils.SCAN_FOR_TYPENAMES));
             }
 
             // if this is not a new store let's extract basic properties from it
