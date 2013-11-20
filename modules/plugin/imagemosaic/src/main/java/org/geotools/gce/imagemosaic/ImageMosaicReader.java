@@ -319,7 +319,7 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
                 // Since we are dealing with a catalog from an existing store, make sure to scan for all the typeNames on initialization
                 final String typeNames = props.getProperty(Utils.SCAN_FOR_TYPENAMES);
                 if (typeNames != null) {
-                    props.put(Utils.SCAN_FOR_TYPENAMES, Boolean.getBoolean(typeNames));
+                    props.put(Utils.SCAN_FOR_TYPENAMES, Boolean.valueOf(typeNames));
                 } else {
                     props.put(Utils.SCAN_FOR_TYPENAMES, Boolean.TRUE);
                 }
