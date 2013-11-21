@@ -162,7 +162,7 @@ class GTDataStoreGranuleCatalog extends GranuleCatalog {
             }
 
             if (params.containsKey(Utils.SCAN_FOR_TYPENAMES)) {
-                scanForTypeNames = Boolean.valueOf(params.getProperty(Utils.SCAN_FOR_TYPENAMES));
+                scanForTypeNames = Boolean.valueOf(params.get(Utils.SCAN_FOR_TYPENAMES).toString());
             }
 
             // if this is not a new store let's extract basic properties from it
