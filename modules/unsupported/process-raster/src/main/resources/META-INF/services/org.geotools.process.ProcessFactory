@@ -1,1 +1,2 @@
 org.geotools.process.raster.VectorToRasterFactory
+org.geotools.process.raster.gs.AlgebricOpProcessFactory

@@ -101,6 +101,7 @@
     <javac.maxHeapSize>256M</javac.maxHeapSize>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <postgresql.jdbc.version>8.4-701.jdbc3</postgresql.jdbc.version>
+    <jaiext.version>1.0-SNAPSHOT</jaiext.version>
   </properties>
 
   <!-- Profiles set on the command-line overwrite default properties. -->
@@ -701,6 +702,13 @@
         <artifactId>imageio-ext-grib1</artifactId>
         <version>${imageio.ext.version}</version>
       </dependency>                          
+
+      <!-- JAI-Ext-->
+      <dependency>
+        <groupId>it.geosolutions.jaiext.algebra</groupId>
+        <artifactId>jt-algebra</artifactId>
+        <version>${jaiext.version}</version>
+      </dependency>
 
       <!-- JAITools -->
       <dependency>
