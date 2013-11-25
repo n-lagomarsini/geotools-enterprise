@@ -64,14 +64,14 @@ import org.opengis.referencing.operation.MathTransform2D;
 import org.opengis.util.InternationalString;
 import com.vividsolutions.jts.geom.Geometry;
 
-public class AlgebricOpJAIEXT extends OperationJAI {
+public class AlgebricOp extends OperationJAI {
 
     /**
      * The rendered mode for JAI operation.
      */
     protected static final String RENDERED_MODE = RenderedRegistryMode.MODE_NAME;
 
-    public AlgebricOpJAIEXT() {
+    public AlgebricOp() {
         super(getOperationDescriptor("algebric"), new ImagingParameterDescriptors(
                 getOperationDescriptor("algebric"), REPLACED_DESCRIPTORS));
     }
@@ -171,9 +171,9 @@ public class AlgebricOpJAIEXT extends OperationJAI {
                 // Selection of the NO DATA associated to the coverage
                 Object noDataValue = source.getProperty("GC_NODATA");
                 // If the inner NO DATA parameter is present, then it is elaborated
-                if (noDataValue != null && noDataValue instanceof Double) {
+                if (noDataValue != null && noDataValue instanceof Number) {
                     // Selection of the value
-                    Double innerNoData = (Double) noDataValue;
+                    Number innerNoData = ((Number) noDataValue);
                     // If no NODATA Range is present, then it is created from the inner NODATA value
                     if (noData == null) {
                         Range noDataRange;
@@ -214,7 +214,7 @@ public class AlgebricOpJAIEXT extends OperationJAI {
                     }
                     // If no destination NODATAe is present, then it is added from the inner NODATA value.
                     if (destinationNoData == null) {
-                        block.setParameter("destinationNoData", innerNoData);
+                        block.setParameter("destinationNoData", innerNoData.doubleValue());
                     }
                 }
             }
